@@ -1,0 +1,49 @@
+.App {
+  font-family: sans-serif;
+  text-align: center;
+}
+
+.Avatar {
+  background: white;
+  position: absolute;
+  transition: transform 0.5s ease;
+
+  padding: 10px;
+  box-shadow: 0 0 1px 0px lightblue, 0 0 5px lightgray inset, 1px 1px 10px gray;
+  border-radius: 50%;
+}
+
+.Avatar video {
+  display: block;
+  width: 150px;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 50%;
+  z-index: -1;
+  position: relative;
+  opacity: 0;
+}
+
+.Avatar .avatarInset {
+  border-radius: 50%;
+  box-shadow: 0 0 10px lightgray inset;
+  isolation: isolate;
+}
+
+.Avatar.avatarVideo video {
+  transition: opacity 1s ease;
+  opacity: 1;
+}
+
+.CallDialog {
+  background: white;
+  box-shadow: 0 0 10px gray;
+  position: fixed;
+  bottom: 10px;
+  right: 10px;
+  padding: 10px;
+}
+
+.CallDialog button + button {
+  margin-left: 10px;
+}
