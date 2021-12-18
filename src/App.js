@@ -3,6 +3,27 @@ import ReactDOM from "react-dom";
 import cx from "clsx";
 import styles from "./App.module.css";
 
+function usePromise(promise, initState = null) {
+  const [state, setState] = React.useState(initState);
+
+  React.useEffect(() => {
+    let canceled = false;
+
+    // eslint-disable-next-line no-unused-expressions
+    promise?.then((value) => {
+      if (!canceled) {
+        setState(value);
+      }
+    });
+
+    return () => {
+      canceled = true;
+    };
+  }, [promise]);
+
+  return state;
+}
+
 function useAsyncEffect(effect, deps) {
   const mountedRef = React.useRef(true);
   const mountedFuncRef = React.useRef(() => mountedRef.current);
@@ -72,7 +93,7 @@ function Avatars({ children }) {
 }
 
 function Avatar({
-  dataChannel,
+  dataChannel: propsDataChannel,
   mediaStream,
   muted,
   location: propsLocation,
@@ -87,18 +108,17 @@ function Avatar({
   ]);
 
   const location = propsLocation || stateLocation;
+  const dataChannel = usePromise(propsDataChannel);
 
-  const [volume] = React.useMemo(() => {
-    const l = location;
-    const m = micLocation || location;
-    const d = Math.sqrt(Math.pow(m[0] - l[0], 2) + Math.pow(m[1] - l[1], 2));
-    const v = muted
-      ? 0
-      : Math.min(Math.max(Math.pow(1 - d / window.innerWidth, 2.0), 0.0), 1.0);
-    return [v];
-  }, [location, micLocation, muted]);
-
-  const transform = `translate(${location[0]}px, ${location[1]}px) translate(-50%, -50%)`;
+  React.useEffect(() => {
+    if (dataChannel) {
+      dataChannel.addEventListener("message", (e) => {
+        const data = JSON.parse(e.data);
+        console.log("LOCATION", data);
+        setStateLocation(data);
+      });
+    }
+  }, [dataChannel]);
 
   const videoRefFunc = React.useCallback(
     (/** @type HTMLMediaElement */ ref) => {
@@ -112,24 +132,23 @@ function Avatar({
     [mediaStream]
   );
 
+  const volume = React.useMemo(() => {
+    const l = location;
+    const m = micLocation || location;
+    const d = Math.sqrt(Math.pow(m[0] - l[0], 2) + Math.pow(m[1] - l[1], 2));
+    const v = muted
+      ? 0
+      : Math.min(Math.max(Math.pow(1 - d / window.innerWidth, 2.0), 0.0), 1.0);
+    return v;
+  }, [location, micLocation, muted]);
+
   React.useEffect(() => {
     if (videoRef.current) {
-      console.log("VOLUME", volume);
       videoRef.current.volume = volume;
     }
   }, [volume]);
 
-  React.useEffect(() => {
-    if (dataChannel) {
-      dataChannel.then((channel) =>
-        channel.addEventListener("message", (e) => {
-          const data = JSON.parse(e.data);
-          console.log("LOCATION", data);
-          setStateLocation(data);
-        })
-      );
-    }
-  }, [dataChannel]);
+  const transform = `translate(${location[0]}px, ${location[1]}px) translate(-50%, -50%)`;
 
   return (
     <div
