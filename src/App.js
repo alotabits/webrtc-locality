@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom";
-import styles from "./styles.module.css";
+import cx from "clsx";
+import styles from "./App.module.css";
 
 function useAsyncEffect(effect, deps) {
   const mountedRef = React.useRef(true);
@@ -66,22 +67,36 @@ function useMediaStream({ video, audio }) {
   return state;
 }
 
-function Avatar({ mediaStream, muted, location: propsLocation, micLocation }) {
+function Avatars({ children }) {
+  return <div className={[styles.Avatars]}>{children}</div>;
+}
+
+function Avatar({
+  dataChannel,
+  mediaStream,
+  muted,
+  location: propsLocation,
+  micLocation
+}) {
   const [playing, setPlaying] = React.useState(false);
   const videoRef = React.useRef(null);
 
-  const [location, volume] = React.useMemo(() => {
-    const l = propsLocation || [
-      Math.random() * window.innerWidth,
-      Math.random() * window.innerHeight
-    ];
-    const m = micLocation || [0, 0];
+  const [stateLocation, setStateLocation] = React.useState(() => [
+    Math.random() * window.innerWidth,
+    Math.random() * window.innerHeight
+  ]);
+
+  const location = propsLocation || stateLocation;
+
+  const [volume] = React.useMemo(() => {
+    const l = location;
+    const m = micLocation || location;
     const d = Math.sqrt(Math.pow(m[0] - l[0], 2) + Math.pow(m[1] - l[1], 2));
     const v = muted
       ? 0
-      : Math.pow(Math.min(Math.max(1 - d / window.innerWidth, 0.0), 1.0), 2.0);
-    return [l, v];
-  }, [propsLocation, micLocation, muted]);
+      : Math.min(Math.max(Math.pow(1 - d / window.innerWidth, 2.0), 0.0), 1.0);
+    return [v];
+  }, [location, micLocation, muted]);
 
   const transform = `translate(${location[0]}px, ${location[1]}px) translate(-50%, -50%)`;
 
@@ -90,12 +105,11 @@ function Avatar({ mediaStream, muted, location: propsLocation, micLocation }) {
       videoRef.current = ref;
       if (ref) {
         ref.srcObject = mediaStream;
-        ref.volume = volume;
         ref.play();
-        setPlaying(true);
+        setTimeout(() => setPlaying(true), 0); // TODO: mount check?
       }
     },
-    [mediaStream, volume]
+    [mediaStream]
   );
 
   React.useEffect(() => {
@@ -105,13 +119,26 @@ function Avatar({ mediaStream, muted, location: propsLocation, micLocation }) {
     }
   }, [volume]);
 
+  React.useEffect(() => {
+    if (dataChannel) {
+      dataChannel.then((channel) =>
+        channel.addEventListener("message", (e) => {
+          const data = JSON.parse(e.data);
+          console.log("LOCATION", data);
+          setStateLocation(data);
+        })
+      );
+    }
+  }, [dataChannel]);
+
   return (
     <div
-      className={[styles.Avatar, playing && styles.avatarVideo].join(" ")}
+      className={cx(styles.Avatar, playing && styles.avatarVideo)}
       style={{ transform }}
     >
       <div className={styles.avatarInset}>
         <video ref={videoRefFunc} muted={muted} autoPlay />
+        <div className={styles.avatarVolume}>{Math.ceil(volume * 100)}</div>
       </div>
     </div>
   );
@@ -130,6 +157,9 @@ function CallDialog({ mediaStream, answer, onConnect }) {
       mediaStream
         .getTracks()
         .forEach((track) => pc.addTrack(track, mediaStream));
+
+      // Use a promise so that caller/answerer look the same to Avatar code.
+      pc.dataChannel = Promise.resolve(pc.createDataChannel("avatar"));
 
       peerConn.current = pc;
 
@@ -170,6 +200,14 @@ function CallDialog({ mediaStream, answer, onConnect }) {
       mediaStream
         .getTracks()
         .forEach((track) => pc.addTrack(track, mediaStream));
+
+      // The calling side is responsible for creating the data channel
+      pc.dataChannel = new Promise((resolve) => {
+        pc.addEventListener("datachannel", (e) => {
+          window.channel = e.channel;
+          resolve(e.channel);
+        });
+      });
 
       peerConn.current = pc;
 
@@ -217,6 +255,9 @@ function CallDialog({ mediaStream, answer, onConnect }) {
             const offer = JSON.parse(await navigator.clipboard.readText());
             const offerDesc = new RTCSessionDescription(offer);
             await handleMakeAnswer(mediaStream, offerDesc);
+            const pc = peerConn.current;
+            peerConn.current = null;
+            onConnect(pc);
           } else {
             // Recieve answer
             const answer = JSON.parse(await navigator.clipboard.readText());
@@ -233,6 +274,18 @@ function CallDialog({ mediaStream, answer, onConnect }) {
       </button>
     </div>,
     document.body
+  );
+}
+
+function HUD({ onChooseLocation }) {
+  return (
+    <div
+      className={cx(styles.HUD)}
+      onClick={(e) =>
+        console.log("click", e.clientX) ||
+        onChooseLocation([e.clientX, e.clientY])
+      }
+    ></div>
   );
 }
 
@@ -302,34 +355,35 @@ export default function App() {
     });
   };
 
+  const handleChooseLocation = (location) => {
+    peers.forEach(async (peer) => {
+      (await peer.peerConn.dataChannel).send(JSON.stringify(location));
+    });
+    setLocation(location);
+  };
+
   return (
     <>
-      <button
-        type="button"
-        onClick={() =>
-          setLocation([
-            window.innerWidth * Math.random(),
-            window.innerHeight * Math.random()
-          ])
-        }
-      >
-        Random Location
-      </button>
-      <Avatar mediaStream={mediaStream} location={location} muted />
+      <Avatars>
+        {peers.map((peer) => (
+          <Avatar
+            key={peer.mediaStream.id}
+            dataChannel={peer.peerConn.dataChannel}
+            mediaStream={peer.mediaStream}
+            micLocation={location}
+          />
+        ))}
 
-      {peers.map((peer) => (
-        <Avatar
-          key={peer.mediaStream.id}
-          mediaStream={peer.mediaStream}
-          micLocation={location}
-        />
-      ))}
+        <Avatar mediaStream={mediaStream} location={location} muted />
+      </Avatars>
 
       <CallDialog
         mediaStream={mediaStream}
         answer={window.location.hash === "#answer"}
         onConnect={handleConnect}
       />
+
+      <HUD onChooseLocation={handleChooseLocation} />
     </>
   );
 }

@@ -11,6 +11,7 @@
   padding: 10px;
   box-shadow: 0 0 1px 0px lightblue, 0 0 5px lightgray inset, 1px 1px 10px gray;
   border-radius: 50%;
+  font-family: sans-serif;
 }
 
 .Avatar video {
@@ -35,6 +36,21 @@
   opacity: 1;
 }
 
+.Avatar .avatarVolume {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 0 0 1px lightgray;
+  font-size: 80%;
+}
+
 .CallDialog {
   background: white;
   box-shadow: 0 0 10px gray;
@@ -46,4 +62,15 @@
 
 .CallDialog button + button {
   margin-left: 10px;
+}
+
+.Avatars {
+  position: fixed;
+  inset: 0;
+}
+
+.HUD {
+  position: fixed;
+  inset: 0;
+  box-shadow: 0 0 20px black inset;
 }
