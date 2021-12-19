@@ -2,6 +2,21 @@ import React from "react";
 import ReactDOM from "react-dom";
 import cx from "clsx";
 import styles from "./App.module.css";
+import { faPhone, faSpinner } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+
+function useMounted() {
+  const ref = React.useRef(true);
+
+  React.useEffect(
+    () => () => {
+      ref.current = false;
+    },
+    []
+  );
+
+  return ref.current;
+}
 
 function usePromise(promise, initState = null) {
   const [state, setState] = React.useState(initState);
@@ -25,15 +40,8 @@ function usePromise(promise, initState = null) {
 }
 
 function useAsyncEffect(effect, deps) {
-  const mountedRef = React.useRef(true);
-  const mountedFuncRef = React.useRef(() => mountedRef.current);
-
-  React.useEffect(
-    () => () => {
-      mountedRef.current = false;
-    },
-    []
-  );
+  const isMounted = useMounted();
+  const mountedFuncRef = React.useRef(() => isMounted);
 
   React.useEffect(() => {
     effect(mountedFuncRef.current);
@@ -163,13 +171,34 @@ function Avatar({
   );
 }
 
-function CallDialog({ mediaStream, answer, onConnect }) {
-  const [payload, setPayload] = React.useState(null);
-  /** @type React.Ref<RTCPeerConnection> */
-  const peerConn = React.useRef(null);
+function gatherLocalDescription(pc) {
+  return new Promise((resolve, reject) => {
+    pc.addEventListener("icecandidate", (e) => {
+      console.log("icecandidate", e);
+      if (e.candidate === null) {
+        console.log("FINAL");
+        resolve(pc.localDescription);
+      }
+    });
+    pc.addEventListener("icecandidateerror", (e) => {
+      console.log("icecandidateerror", e);
+      reject(e);
+    });
+  });
+}
 
-  const handleMakeCall = React.useCallback(async (mediaStream) => {
+function CallButton({ mediaStream, onConnect }) {
+  const STATE_INIT = "init";
+  const STATE_GENERATING = "generating";
+  const STATE_WAITING = "waiting";
+
+  const [state, setState] = React.useState(STATE_INIT);
+  const [peerConn, setPeerConn] = React.useState(null);
+  const onConnectRef = React.useRef(onConnect);
+
+  const handleMakeCall = React.useCallback(async () => {
     try {
+      setState(STATE_GENERATING);
       const pc = new RTCPeerConnection({
         //iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
       });
@@ -179,40 +208,83 @@ function CallDialog({ mediaStream, answer, onConnect }) {
 
       // Use a promise so that caller/answerer look the same to Avatar code.
       pc.dataChannel = Promise.resolve(pc.createDataChannel("avatar"));
-
-      peerConn.current = pc;
-
-      const iceGathering = new Promise((resolve, reject) => {
-        pc.addEventListener("icecandidate", (e) => {
-          console.log("icecandidate", e);
-          if (e.candidate === null) {
-            console.log("FINAL");
-            resolve(pc.localDescription);
-          }
-        });
-        pc.addEventListener("icecandidateerror", (e) => {
-          console.log("icecandidateerror", e);
-          reject(e);
-        });
-      });
-
-      console.log("OFFER");
+      const iceGathering = gatherLocalDescription(pc);
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
-
-      console.log("GATHERING");
       const finalOffer = await iceGathering;
-      console.log("GATHERING COMPLETE");
 
-      console.log("SETTING");
-      setPayload(finalOffer);
+      await navigator.clipboard.writeText(JSON.stringify(finalOffer));
+      setState(STATE_WAITING);
+      setPeerConn(pc);
     } catch (e) {
       console.log("handleMakeCall", e);
+      setState(STATE_INIT);
+      setPeerConn(null);
     }
-  }, []);
+  }, [mediaStream]);
 
-  const handleMakeAnswer = React.useCallback(async (mediaStream, offerDesc) => {
+  const handleReceiveAnswer = React.useCallback(async () => {
     try {
+      const answer = JSON.parse(await navigator.clipboard.readText());
+      const answerDesc = new RTCSessionDescription(answer);
+      await peerConn.setRemoteDescription(answerDesc);
+      onConnectRef.current(peerConn);
+      setState(STATE_INIT);
+      setPeerConn(null);
+    } catch (err) {
+      setState(STATE_INIT);
+      setPeerConn(null);
+    }
+  }, [peerConn]);
+
+  React.useEffect(() => {
+    onConnectRef.current = onConnect;
+  }, [onConnect]);
+
+  return (
+    <>
+      <div className={styles.CallButton}>
+        <button
+          type="button"
+          className={styles.callButton}
+          onClick={handleMakeCall}
+          disabled={state !== STATE_INIT}
+        >
+          {state === STATE_GENERATING ? (
+            <FontAwesomeIcon className={styles.spin} icon={faSpinner} />
+          ) : (
+            <FontAwesomeIcon icon={faPhone} />
+          )}
+        </button>
+        <div>Call</div>
+      </div>
+      {state === STATE_WAITING &&
+        ReactDOM.createPortal(
+          <div className={styles.callButtonOverlay}>
+            <div className={styles.callButtonDialog}>
+              <div>Call copied to clipboard. Awaiting answer.</div>
+              <div>Click Connect when answer is in clipboard.</div>
+              <button type="button" onClick={handleReceiveAnswer}>
+                Connect
+              </button>
+            </div>
+          </div>,
+          document.body
+        )}
+    </>
+  );
+}
+
+function AnswerButton({ mediaStream, onConnect }) {
+  const STATE_INIT = "init";
+  const STATE_GENERATING = "generating";
+
+  const [state, setState] = React.useState(STATE_INIT);
+  const onConnectRef = React.useRef(onConnect);
+
+  const handleMakeAnswer = React.useCallback(async () => {
+    try {
+      setState(STATE_GENERATING);
       const pc = new RTCPeerConnection({
         //iceServers: [{ urls: "stun:23.21.150.121" }]
       });
@@ -223,88 +295,59 @@ function CallDialog({ mediaStream, answer, onConnect }) {
       // The calling side is responsible for creating the data channel
       pc.dataChannel = new Promise((resolve) => {
         pc.addEventListener("datachannel", (e) => {
-          window.channel = e.channel;
           resolve(e.channel);
         });
       });
 
-      peerConn.current = pc;
-
+      const offer = JSON.parse(await navigator.clipboard.readText());
+      const offerDesc = new RTCSessionDescription(offer);
       await pc.setRemoteDescription(offerDesc);
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
 
-      setPayload(answer);
+      await navigator.clipboard.writeText(JSON.stringify(answer));
+      onConnectRef.current(pc);
+      setState(STATE_INIT);
     } catch (e) {
       console.log("handleMakeAnswer", e);
+      setState(STATE_INIT);
     }
-  }, []);
+  }, [mediaStream]);
 
   React.useEffect(() => {
-    if (!answer && mediaStream) {
-      handleMakeCall(mediaStream);
-    }
-  }, [mediaStream, answer, handleMakeCall]);
+    onConnectRef.current = onConnect;
+  }, [onConnect]);
 
-  React.useEffect(
-    () => () => {
-      if (peerConn.current) {
-        peerConn.current.close();
-      }
-    },
-    []
-  );
-
-  return ReactDOM.createPortal(
-    <div className={styles.CallDialog}>
-      <button
-        disabled={!payload}
-        type="button"
-        onClick={() => {
-          navigator.clipboard.writeText(JSON.stringify(payload));
-        }}
-      >
-        {answer ? "Copy Answer to Clipboad" : "Copy Call to Clipboard"}
-      </button>
+  return (
+    <div className={styles.AnswerButton}>
       <button
         type="button"
-        onClick={async () => {
-          if (answer && mediaStream) {
-            // Receive call
-            const offer = JSON.parse(await navigator.clipboard.readText());
-            const offerDesc = new RTCSessionDescription(offer);
-            await handleMakeAnswer(mediaStream, offerDesc);
-            const pc = peerConn.current;
-            peerConn.current = null;
-            onConnect(pc);
-          } else {
-            // Recieve answer
-            const answer = JSON.parse(await navigator.clipboard.readText());
-            const answerDesc = new RTCSessionDescription(answer);
-            const pc = peerConn.current;
-            peerConn.current = null;
-            // TODO: can't go round 2 with calls because this is gone
-            await pc.setRemoteDescription(answerDesc);
-            onConnect(pc);
-          }
-        }}
+        className={styles.answerButton}
+        onClick={handleMakeAnswer}
       >
-        {answer ? "Read Call from Clipboard" : "Read Answer from Clipboard"}
+        {state === STATE_GENERATING ? (
+          <FontAwesomeIcon className={styles.spin} icon={faSpinner} />
+        ) : (
+          <FontAwesomeIcon icon={faPhone} />
+        )}
       </button>
-    </div>,
-    document.body
+      <div>Answer</div>
+    </div>
   );
 }
 
-function HUD({ onChooseLocation }) {
+function HUD({ children, onChooseLocation }) {
   return (
-    <div
-      className={cx(styles.HUD)}
-      onClick={(e) =>
-        console.log("click", e.clientX) ||
-        onChooseLocation([e.clientX, e.clientY])
-      }
-    ></div>
+    <div className={styles.HUD}>
+      <div
+        className={styles.hudLocator}
+        onClick={(e) =>
+          console.log("click", e.clientX) ||
+          onChooseLocation([e.clientX, e.clientY])
+        }
+      />
+      {children}
+    </div>
   );
 }
 
@@ -327,26 +370,11 @@ export default function App() {
       peerConn.getReceivers().map((receiver) => receiver.track)
     );
 
-    /*
-    const audioCtx = new AudioContext();
-    const src = audioCtx.createMediaStreamSource(mediaStream);
-    const gain = audioCtx.createGain();
-    const dst = audioCtx.createMediaStreamDestination();
-    src.connect(gain);
-    // gain.connect(dst);
-    src.connect(dst);
-
-    gain.gain.value = 1;
-    window.gain = gain;
-    window.dst = dst;
-    */
-
     setPeers((prevPeers) => [
       ...prevPeers,
       {
         peerConn,
-        mediaStream //: dst.stream
-        //gain
+        mediaStream
       }
     ]);
 
@@ -396,13 +424,10 @@ export default function App() {
         <Avatar mediaStream={mediaStream} location={location} muted />
       </Avatars>
 
-      <CallDialog
-        mediaStream={mediaStream}
-        answer={window.location.hash === "#answer"}
-        onConnect={handleConnect}
-      />
-
-      <HUD onChooseLocation={handleChooseLocation} />
+      <HUD onChooseLocation={handleChooseLocation}>
+        <CallButton mediaStream={mediaStream} onConnect={handleConnect} />
+        <AnswerButton mediaStream={mediaStream} onConnect={handleConnect} />
+      </HUD>
     </>
   );
 }
