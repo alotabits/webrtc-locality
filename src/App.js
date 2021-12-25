@@ -4,6 +4,7 @@ import cx from "clsx";
 import styles from "./App.module.css";
 import { faPhone, faSpinner } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import produce from "immer";
 
 function useMounted() {
   const ref = React.useRef(true);
@@ -374,7 +375,10 @@ export default function App() {
       ...prevPeers,
       {
         peerConn,
-        mediaStream
+        mediaStream,
+        sync: {
+          stale: false
+        }
       }
     ]);
 
@@ -403,10 +407,16 @@ export default function App() {
   };
 
   const handleChooseLocation = (location) => {
-    peers.forEach(async (peer) => {
-      debugger;
-      // TODO: Failed to execute 'send' on 'RTCDataChannel': RTCDataChannel.readyState is not 'open'
-      (await peer.peerConn.dataChannel).send(JSON.stringify(location));
+    peers.forEach(async (peer, i) => {
+      if (peer.peerConn.readyState === "open") {
+        (await peer.peerConn.dataChannel).send(JSON.stringify(location));
+      } else {
+        setPeers(
+          produce((draft) => {
+            draft[i].sync.stale = true;
+          })
+        );
+      }
     });
     setLocation(location);
   };
