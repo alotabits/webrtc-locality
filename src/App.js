@@ -200,7 +200,7 @@ function CallButton({ mediaStream, onConnect }) {
     try {
       setState(STATE_GENERATING);
       const pc = new RTCPeerConnection({
-        //iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+        iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
       });
       mediaStream
         .getTracks()
@@ -404,6 +404,8 @@ export default function App() {
 
   const handleChooseLocation = (location) => {
     peers.forEach(async (peer) => {
+      debugger;
+      // TODO: Failed to execute 'send' on 'RTCDataChannel': RTCDataChannel.readyState is not 'open'
       (await peer.peerConn.dataChannel).send(JSON.stringify(location));
     });
     setLocation(location);
