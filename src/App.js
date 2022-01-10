@@ -5,6 +5,18 @@ import styles from "./App.module.css";
 import { faPhone, faSpinner } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import produce from "immer";
+const Peer = window.SimplePeer;
+const P2PT = window.P2PT;
+
+function usePrevious(value) {
+  const ref = React.useRef(null);
+
+  React.useEffect(() => {
+    ref.current = value;
+  }, [value]);
+
+  return ref.current;
+}
 
 function useMounted() {
   const ref = React.useRef(true);
@@ -102,54 +114,101 @@ function Avatars({ children }) {
 }
 
 function Avatar({
-  dataChannel: propsDataChannel,
-  mediaStream,
-  muted,
-  location: propsLocation,
-  micLocation
+  localMediaStream,
+  localLocation,
+  localMuted,
+  signalingPeer,
+  onSignal,
+  onVideoPeer
 }) {
+  const [videoPeer, setVideoPeer] = React.useState(null);
+  const [peerMediaStream, setPeerMediaStream] = React.useState(null);
+  const [peerLocation, setPeerLocation] = React.useState(() => {
+    // Randomly outside grid?
+    return [
+      Math.random() * window.innerWidth,
+      Math.random() * window.innerHeight
+    ];
+  });
+
   const [playing, setPlaying] = React.useState(false);
   const videoRef = React.useRef(null);
 
-  const [stateLocation, setStateLocation] = React.useState(() => [
-    Math.random() * window.innerWidth,
-    Math.random() * window.innerHeight
-  ]);
+  React.useEffect(() => {
+    if (!signalingPeer) {
+      return;
+    }
 
-  const location = propsLocation || stateLocation;
-  const dataChannel = usePromise(propsDataChannel);
+    const videoPeer = new Peer({
+      initiator: signalingPeer.initiator,
+      trickle: true,
+      stream: localMediaStream
+    });
+
+    videoPeer.on("signal", (signal) => {
+      console.log("videoPeer signal", signal);
+      onSignal(signal);
+    });
+
+    videoPeer.on("stream", (stream) => {
+      console.log("videoPeer stream");
+      setPeerMediaStream(stream);
+    });
+
+    videoPeer.on("track", (track) => {
+      console.log("videoPeer track", track);
+    });
+
+    videoPeer.on("data", (payload) => {
+      const data = JSON.parse(payload);
+      if (data.type === "location") {
+        console.log("LOCATION", data);
+        setPeerLocation(data.location);
+      }
+    });
+
+    videoPeer.on("connect", () => {
+      setVideoPeer(videoPeer);
+    });
+
+    onVideoPeer(videoPeer);
+  }, [localMediaStream, signalingPeer, onSignal, onVideoPeer]);
 
   React.useEffect(() => {
-    if (dataChannel) {
-      dataChannel.addEventListener("message", (e) => {
-        const data = JSON.parse(e.data);
-        console.log("LOCATION", data);
-        setStateLocation(data);
-      });
+    if (!videoPeer) {
+      return;
     }
-  }, [dataChannel]);
+
+    const payload = { type: "location", location: localLocation };
+    videoPeer.send(JSON.stringify(payload));
+  }, [videoPeer, localLocation]);
 
   const videoRefFunc = React.useCallback(
     (/** @type HTMLMediaElement */ ref) => {
       videoRef.current = ref;
       if (ref) {
-        ref.srcObject = mediaStream;
+        ref.srcObject = signalingPeer ? peerMediaStream : localMediaStream;
         ref.play();
         setTimeout(() => setPlaying(true), 0); // TODO: mount check?
       }
     },
-    [mediaStream]
+    [signalingPeer, localMediaStream, peerMediaStream]
   );
 
   const volume = React.useMemo(() => {
-    const l = location;
-    const m = micLocation || location;
+    if (!signalingPeer) {
+      return 0;
+    }
+
+    const l = peerLocation;
+    const m = localLocation;
     const d = Math.sqrt(Math.pow(m[0] - l[0], 2) + Math.pow(m[1] - l[1], 2));
-    const v = muted
-      ? 0
-      : Math.min(Math.max(Math.pow(1 - d / window.innerWidth, 2.0), 0.0), 1.0);
+    const v = Math.min(
+      Math.max(Math.pow(1 - d / window.innerWidth, 2.0), 0.0),
+      1.0
+    );
     return v;
-  }, [location, micLocation, muted]);
+  }, [signalingPeer, peerLocation, localLocation]);
 
   React.useEffect(() => {
     if (videoRef.current) {
@@ -157,6 +216,7 @@ function Avatar({
     }
   }, [volume]);
 
+  const location = signalingPeer ? peerLocation : localLocation;
   const transform = `translate(${location[0]}px, ${location[1]}px) translate(-50%, -50%)`;
 
   return (
@@ -165,7 +225,7 @@ function Avatar({
       style={{ transform }}
     >
       <div className={styles.avatarInset}>
-        <video ref={videoRefFunc} muted={muted} autoPlay />
+        <video ref={videoRefFunc} muted={!signalingPeer} autoPlay />
         <div className={styles.avatarVolume}>{Math.ceil(volume * 100)}</div>
       </div>
     </div>
@@ -353,92 +413,186 @@ function HUD({ children, onChooseLocation }) {
 }
 
 export default function App() {
+  const [p2, setP2] = React.useState(null);
+
   const [location, setLocation] = React.useState(() => [
     window.innerWidth / 2,
     window.innerHeight / 2
   ]);
+
   const { mediaStream } = useMediaStream({
     video: true,
     audio: true
   });
 
-  const [peers, setPeers] = React.useState([]);
+  const [avatars, setAvatars] = React.useState({});
 
-  const handleConnect = (/** @type RTCPeerConnection */ peerConn) => {
-    console.log("CONNECTED", peerConn);
+  const handleJoin = React.useCallback(() => {
+    const room = window.location.hash || "general";
 
-    const mediaStream = new MediaStream(
-      peerConn.getReceivers().map((receiver) => receiver.track)
-    );
+    let announceURLs = [
+      "wss://tracker.openwebtorrent.com",
+      "wss://tracker.sloppyta.co:443/announce",
+      "wss://tracker.novage.com.ua:443/announce"
+      // Connections fail: "wss://tracker.btorrent.xyz:443/announce"
+    ];
 
-    setPeers((prevPeers) => [
-      ...prevPeers,
-      {
-        peerConn,
-        mediaStream,
-        sync: {
-          stale: false
+    if (window.location.hostname === "localhost") {
+      announceURLs = ["ws://localhost:5000"];
+    }
+
+    const p2pt = new P2PT(announceURLs, "webrtc-locality-" + room);
+
+    p2pt.on("peerconnect", (peer) => {
+      console.log("peerconnect");
+
+      const onSignal = (signal) => {
+        console.log("signal", signal);
+        p2pt.send(peer, {
+          type: "signal",
+          signal
+        });
+      };
+
+      const onVideoPeer = (videoPeer) => {
+        // We probably need a way to tie these handlers to the avatar object and remove them
+        // Maybe it really does make sense to have the p2pt exposed as a pubsub context.
+        p2pt.on("msg", (msgPeer, msg) => {
+          // Reject messages for other peers, since this is a common bus
+          console.log("msg", peer, msg);
+          if (msgPeer.id !== peer.id || msg.type !== "signal") {
+            return;
+          }
+
+          videoPeer.signal(msg.signal);
+        });
+      };
+
+      p2pt.on("msg", (msgPeer, msg) => {
+        // Reject messages for other peers, since this is a common bus
+        console.log("msg", peer, msg);
+        if (msgPeer.id !== peer.id) {
+          return;
         }
-      }
-    ]);
 
-    peerConn.addEventListener("connectionstatechange", (event) => {
-      switch (event.target.connectionState) {
-        case "connected":
-          // The connection has become fully connected
-          break;
-        case "disconnected":
-        case "failed":
-          // One or more transports has terminated unexpectedly or in an error
-          setPeers((peers) =>
-            peers.filter((peer) => peer.mediaStream.id !== mediaStream.id)
-          );
-          break;
-        case "closed":
-          // The connection has been closed
-          setPeers((peers) =>
-            peers.filter((peer) => peer.mediaStream.id !== mediaStream.id)
-          );
-          break;
-        default:
-          break;
-      }
+        switch (msg.type) {
+          case "removeTrack":
+          default:
+        }
+      });
+
+      setAvatars(
+        produce((draftAvatars) => {
+          draftAvatars[peer.id] = {
+            signalingPeer: peer,
+            onSignal,
+            onVideoPeer
+          };
+        })
+      );
     });
-  };
+
+    p2pt.on("peerclose", (peer) => {
+      console.log("peerclose");
+      setAvatars(
+        produce((draftAvatars) => {
+          delete draftAvatars[peer.id];
+        })
+      );
+    });
+
+    p2pt.start();
+    setP2(p2pt);
+  }, []);
+
+  // const handleConnect = (/** @type RTCPeerConnection */ peerConn) => {
+  //   console.log("CONNECTED", peerConn);
+
+  //   const mediaStream = new MediaStream(
+  //     peerConn.getReceivers().map((receiver) => receiver.track)
+  //   );
+
+  //   setPeers((prevPeers) => [
+  //     ...prevPeers,
+  //     {
+  //       peerConn,
+  //       mediaStream,
+  //       sync: {
+  //         stale: false
+  //       }
+  //     }
+  //   ]);
+
+  //   peerConn.addEventListener("connectionstatechange", (event) => {
+  //     switch (event.target.connectionState) {
+  //       case "connected":
+  //         // The connection has become fully connected
+  //         break;
+  //       case "disconnected":
+  //       case "failed":
+  //         // One or more transports has terminated unexpectedly or in an error
+  //         setPeers((peers) =>
+  //           peers.filter((peer) => peer.mediaStream.id !== mediaStream.id)
+  //         );
+  //         break;
+  //       case "closed":
+  //         // The connection has been closed
+  //         setPeers((peers) =>
+  //           peers.filter((peer) => peer.mediaStream.id !== mediaStream.id)
+  //         );
+  //         break;
+  //       default:
+  //         break;
+  //     }
+  //   });
+  // };
 
   const handleChooseLocation = (location) => {
-    peers.forEach(async (peer, i) => {
-      if (peer.peerConn.readyState === "open") {
-        (await peer.peerConn.dataChannel).send(JSON.stringify(location));
-      } else {
-        setPeers(
-          produce((draft) => {
-            draft[i].sync.stale = true;
-          })
-        );
-      }
-    });
     setLocation(location);
+
+    /*
+    Object.values(avatars).forEach((peer) => {
+      p2.send(peer.peer, {
+        type: "location",
+        location
+      });
+    });
+    */
   };
 
   return (
     <>
       <Avatars>
-        {peers.map((peer) => (
+        {Object.values(avatars).map((avatar) => (
           <Avatar
-            key={peer.mediaStream.id}
-            dataChannel={peer.peerConn.dataChannel}
-            mediaStream={peer.mediaStream}
-            micLocation={location}
+            key={avatar.signalingPeer.id}
+            localMediaStream={mediaStream}
+            localLocation={location}
+            localMuted={false}
+            {...avatar}
           />
         ))}
 
-        <Avatar mediaStream={mediaStream} location={location} muted />
+        <Avatar
+          localMediaStream={mediaStream}
+          localLocation={location}
+          localMuted={false}
+          signalingPeer={null}
+          onSignal={null}
+          onVidePeer={null}
+        />
       </Avatars>
 
       <HUD onChooseLocation={handleChooseLocation}>
-        <CallButton mediaStream={mediaStream} onConnect={handleConnect} />
-        <AnswerButton mediaStream={mediaStream} onConnect={handleConnect} />
+        <button
+          type="button"
+          style={{ position: "absolute", left: "0", top: "0" }}
+          onClick={handleJoin}
+        >
+          Join
+        </button>
+        {/* <CallButton mediastream={mediaStream} onconnect={handleConnect} /> */}
+        {/* <AnswerButton mediaStream={mediaStream} onConnect={handleConnect} /> */}
       </HUD>
     </>
   );
