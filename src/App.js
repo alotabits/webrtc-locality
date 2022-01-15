@@ -6,6 +6,7 @@ import { faPhone, faSpinner } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useMediaStream } from "./hooks";
 import { useImmer } from "use-immer";
+import { animated, useSpring, config as springConfig } from "react-spring";
 
 const Peer = window.SimplePeer;
 const P2PT = window.P2PT;
@@ -51,18 +52,21 @@ function Avatar({ mediaStream, location, listenerLocation, muted }) {
     }
   }, [volume]);
 
-  const transform = `translate(${location[0]}px, ${location[1]}px) translate(-50%, -50%)`;
+  const springStyles = useSpring({
+    transform: `translate3d(${location[0]}px, ${location[1]}px, 0) translate3d(-50%, -50%, 0)`,
+    config: springConfig.stiff
+  });
 
   return (
-    <div
+    <animated.div
       className={cx(styles.Avatar, playing && styles.avatarVideo)}
-      style={{ transform }}
+      style={springStyles}
     >
       <div className={styles.avatarInset}>
         <video ref={videoRefFunc} muted={muted} autoPlay />
         <div className={styles.avatarVolume}>{Math.ceil(volume * 100)}</div>
       </div>
-    </div>
+    </animated.div>
   );
 }
 

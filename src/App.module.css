@@ -10,7 +10,6 @@
 .Avatar {
   background: white;
   position: absolute;
-  transition: transform 0.5s ease;
 
   padding: 10px;
   box-shadow: 0 0 1px 0px lightblue, 0 0 5px lightgray inset,
