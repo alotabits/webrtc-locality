@@ -12,7 +12,11 @@ const Peer = window.SimplePeer;
 const P2PT = window.P2PT;
 
 function Avatars({ children }) {
-  return <div className={[styles.Avatars]}>{children}</div>;
+  return (
+    <div className={[styles.Avatars]} style={{ pointerEvents: "none" }}>
+      {children}
+    </div>
+  );
 }
 
 function Avatar({ mediaStream, location, listenerLocation, muted }) {
@@ -63,7 +67,7 @@ function Avatar({ mediaStream, location, listenerLocation, muted }) {
       style={springStyles}
     >
       <div className={styles.avatarInset}>
-        <video ref={videoRefFunc} muted={muted} autoPlay />
+        <video ref={videoRefFunc} muted={muted} autoPlay playsInline />
         <div className={styles.avatarVolume}>{Math.ceil(volume * 100)}</div>
       </div>
     </animated.div>
@@ -329,6 +333,16 @@ export default function App() {
 
   return (
     <>
+      <HUD onChooseLocation={handleChooseLocation}>
+        <button
+          type="button"
+          style={{ position: "absolute", left: "0", top: "0" }}
+          disabled={!!peerTracker}
+          onClick={handleJoin}
+        >
+          Join
+        </button>
+      </HUD>
       <Avatars>
         {Object.values(avatars).map((avatar) => (
           <PeerAvatar
@@ -349,17 +363,6 @@ export default function App() {
           muted
         />
       </Avatars>
-
-      <HUD onChooseLocation={handleChooseLocation}>
-        <button
-          type="button"
-          style={{ position: "absolute", left: "0", top: "0" }}
-          disabled={!!peerTracker}
-          onClick={handleJoin}
-        >
-          Join
-        </button>
-      </HUD>
     </>
   );
 }
