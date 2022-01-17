@@ -147,6 +147,14 @@ function PeerAvatar({
     peer.send(JSON.stringify(payload));
   }, [peer, localLocation]);
 
+  React.useEffect(() => {
+    return () => {
+      if (peer) {
+        peer.destroy();
+      }
+    };
+  }, [peer]);
+
   return (
     <Avatar
       mediaStream={peerMediaStream}
@@ -253,7 +261,10 @@ export default function App() {
         }
 
         updateAvatars((draftAvatars) => {
-          draftAvatars[signalingPeer.id].connected = true;
+          const avatar = draftAvatars[signalingPeer.id];
+          if (avatar) {
+            avatar.connected = true;
+          }
         });
       };
 
@@ -263,7 +274,10 @@ export default function App() {
         signalBuf = null;
 
         updateAvatars((draftAvatars) => {
-          draftAvatars[signalingPeer.id].connected = false;
+          const avatar = draftAvatars[signalingPeer.id];
+          if (avatar) {
+            avatar.connected = false;
+          }
         });
       };
 
