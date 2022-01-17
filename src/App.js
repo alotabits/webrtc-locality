@@ -74,10 +74,11 @@ function PeerAvatar({
   localMediaStream,
   localLocation,
   initiator,
-  onSignal,
-  onVideoPeer
+  onSendSignal,
+  onCreatePeer,
+  onDestroyPeer
 }) {
-  const [videoPeer, setVideoPeer] = React.useState(null);
+  const [peer, setPeer] = React.useState(null);
   const [peerMediaStream, setPeerMediaStream] = React.useState(null);
   const [peerLocation, setPeerLocation] = React.useState(() => {
     // Randomly outside grid?
@@ -87,28 +88,32 @@ function PeerAvatar({
     ];
   });
 
-  React.useEffect(() => {
-    const videoPeer = new Peer({
+  const createPeer = React.useCallback(() => {
+    const newPeer = new Peer({
       initiator,
       trickle: true,
       stream: localMediaStream
     });
 
-    videoPeer.on("signal", (signal) => {
-      console.log("videoPeer signal", signal);
-      onSignal(signal);
+    newPeer.on("signal", (signal) => {
+      console.log("avatar peer signal", signal);
+      onSendSignal(signal);
     });
 
-    videoPeer.on("stream", (stream) => {
-      console.log("videoPeer stream");
+    newPeer.on("connect", () => {
+      setPeer(newPeer);
+    });
+
+    newPeer.on("stream", (stream) => {
+      console.log("avatar peer stream");
       setPeerMediaStream(stream);
     });
 
-    videoPeer.on("track", (track) => {
-      console.log("videoPeer track", track);
+    newPeer.on("track", (track) => {
+      console.log("avatar peer track", track);
     });
 
-    videoPeer.on("data", (payload) => {
+    newPeer.on("data", (payload) => {
       const data = JSON.parse(payload);
       if (data.type === "location") {
         console.log("LOCATION", data);
@@ -116,21 +121,31 @@ function PeerAvatar({
       }
     });
 
-    videoPeer.on("connect", () => {
-      setVideoPeer(videoPeer);
+    newPeer.on("error", () => {
+      setPeer(null);
+      onDestroyPeer();
     });
 
-    onVideoPeer(videoPeer);
-  }, [localMediaStream, initiator, onSignal, onVideoPeer]);
+    newPeer.on("close", () => {
+      setPeer(null);
+      onDestroyPeer();
+    });
+
+    onCreatePeer(newPeer);
+  }, [localMediaStream, initiator, onSendSignal, onCreatePeer, onDestroyPeer]);
 
   React.useEffect(() => {
-    if (!videoPeer) {
+    createPeer();
+  }, [createPeer]);
+
+  React.useEffect(() => {
+    if (!peer) {
       return;
     }
 
     const payload = { type: "location", location: localLocation };
-    videoPeer.send(JSON.stringify(payload));
-  }, [videoPeer, localLocation]);
+    peer.send(JSON.stringify(payload));
+  }, [peer, localLocation]);
 
   return (
     <Avatar
@@ -163,6 +178,7 @@ export default function App() {
   React.useEffect(() => {
     const interval = setInterval(() => {
       if (peerTracker) {
+        console.log("requesting more peers");
         peerTracker.requestMorePeers();
       }
     }, 3000);
@@ -196,63 +212,96 @@ export default function App() {
     ];
 
     const p2pt = new P2PT(announceURLs, "webrtc-locality-" + room);
+    const msgHandlers = {};
 
-    p2pt.on("peerconnect", (peer) => {
+    p2pt.on("peerconnect", (signalingPeer) => {
       console.log("peerconnect");
 
-      const onSignal = (signal) => {
+      let avatarPeer = null;
+      let signalBuf = null;
+
+      const handleSendSignal = (signal) => {
         console.log("signal", signal);
-        p2pt.send(peer, {
+        p2pt.send(signalingPeer, {
           type: "signal",
           signal
         });
       };
 
-      const onVideoPeer = (videoPeer) => {
-        const onMsgSignal = (msgPeer, msg) => {
-          console.log("msg", peer, msg);
-          // Reject messages for other peers, since this is a common bus
-          if (msgPeer.id !== peer.id || msg.type !== "signal") {
-            return;
-          }
+      const handleRecieveMsgSignal = (msgPeer, msg) => {
+        console.log("msg", msgPeer, msg);
+        // Reject messages for other peers, since this is a common bus
+        if (msgPeer.id !== signalingPeer.id || msg.type !== "signal") {
+          return;
+        }
 
-          videoPeer.signal(msg.signal);
-        };
+        if (!avatarPeer) {
+          signalBuf = msg.signal;
+          return;
+        }
 
-        p2pt.on("msg", onMsgSignal);
+        avatarPeer.signal(msg.signal);
+      };
+
+      const handleCreatePeer = (newPeer) => {
+        console.log("handleCreatePeer");
+        avatarPeer = newPeer;
+
+        if (signalBuf) {
+          avatarPeer.signal(signalBuf);
+          signalBuf = null;
+        }
 
         updateAvatars((draftAvatars) => {
-          draftAvatars[peer.id].onMsgSignal = onMsgSignal;
+          draftAvatars[signalingPeer.id].connected = true;
         });
       };
 
+      const handleDestroyPeer = () => {
+        console.log("handleDestroyPeer");
+        avatarPeer = null;
+        signalBuf = null;
+
+        updateAvatars((draftAvatars) => {
+          draftAvatars[signalingPeer.id].connected = false;
+        });
+      };
+
+      msgHandlers[signalingPeer.id] = handleRecieveMsgSignal;
+      p2pt.on("msg", handleRecieveMsgSignal);
+
       updateAvatars((draftAvatars) => {
-        draftAvatars[peer.id] = {
-          signalingPeer: peer,
-          onSignal,
-          onVideoPeer
+        draftAvatars[signalingPeer.id] = {
+          signalingPeer,
+          connected: false,
+          onSendSignal: handleSendSignal,
+          onCreatePeer: handleCreatePeer,
+          onDestroyPeer: handleDestroyPeer
         };
       });
     });
 
-    p2pt.on("peerclose", (peer) => {
+    p2pt.on("peerclose", (signalingPeer) => {
       console.log("peerclose");
 
-      // This fails because we're closed over avatars on an old render.
-      p2pt.off("msg", avatars[peer.id].onMsgSignal);
+      // p2pt does not have an off() method
+      p2pt.removeListener("msg", msgHandlers[signalingPeer.id]);
 
       updateAvatars((draftAvatars) => {
-        delete draftAvatars[peer.id];
+        delete draftAvatars[signalingPeer.id];
       });
     });
 
     p2pt.start();
+
     setPeerTracker(p2pt);
-  }, [avatars, updateAvatars]);
+  }, [updateAvatars]);
 
   const handleChooseLocation = (location) => {
     setLocation(location);
   };
+
+  React.useEffect(handleJoin, [handleJoin]);
 
   if (mediaError) {
     return (
@@ -273,8 +322,9 @@ export default function App() {
             localMediaStream={mediaStream}
             localLocation={location}
             initiator={avatar.signalingPeer.initiator}
-            onSignal={avatar.onSignal}
-            onVideoPeer={avatar.onVideoPeer}
+            onSendSignal={avatar.onSendSignal}
+            onCreatePeer={avatar.onCreatePeer}
+            onDestroyPeer={avatar.onDestroyPeer}
           />
         ))}
 
