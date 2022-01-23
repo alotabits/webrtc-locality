@@ -1,5 +1,8 @@
 :global(html) {
   font-family: sans-serif;
+  --shadow-gray: lightgray;
+  --padding-1: 5px;
+  --padding-2: 10px;
 }
 
 .App {
@@ -12,8 +15,8 @@
   position: absolute;
 
   padding: 10px;
-  box-shadow: 0 0 1px 0px lightblue, 0 0 5px lightgray inset,
-    1px 1px 5px lightgray;
+  box-shadow: 0 0 1px 0px lightblue, 0 0 5px var(--shadow-gray) inset,
+    1px 1px 5px var(--shadow-gray);
   border-radius: 50%;
   font-family: sans-serif;
 }
@@ -31,7 +34,7 @@
 
 .Avatar .avatarInset {
   border-radius: 50%;
-  box-shadow: 0 0 10px lightgray inset;
+  box-shadow: 0 0 10px var(--shadow-gray) inset;
   isolation: isolate;
 }
 
@@ -44,20 +47,21 @@
   position: absolute;
   bottom: 10px;
   right: 10px;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
+  min-width: 32px;
+  /* height: 32px; */
+  border-radius: 16px;
   background: white;
   display: flex;
   justify-content: center;
   align-items: center;
-  box-shadow: 0 0 0 1px lightgray;
+  box-shadow: 0 0 0 1px var(--shadow-gray);
   font-size: 80%;
+  padding: var(--padding-1);
 }
 
 .CallDialog {
   background: white;
-  box-shadow: 0 0 10px gray;
+  box-shadow: 0 0 10px var(--shadow-gray);
   position: fixed;
   bottom: 10px;
   right: 10px;
@@ -76,7 +80,7 @@
 .HUD {
   position: fixed;
   inset: 0;
-  box-shadow: 0 0 20px black inset;
+  box-shadow: 0 0 20px var(--shadow-gray) inset;
 }
 
 .HUD .hudLocator {
@@ -102,7 +106,7 @@
   border: none;
   background: rgb(49, 204, 35);
   cursor: pointer;
-  box-shadow: 0 0 4px 1px lightgray;
+  box-shadow: 0 0 4px 1px var(--shadow-gray);
 }
 
 .CallButton .callButton svg path {
@@ -146,7 +150,7 @@
   border: none;
   background: rgb(49, 204, 35);
   cursor: pointer;
-  box-shadow: 0 0 4px 1px lightgray;
+  box-shadow: 0 0 4px 1px var(--shadow-gray);
 }
 
 .AnswerButton .answerButton svg path {
@@ -167,4 +171,40 @@
   animation-duration: 1000ms;
   animation-iteration-count: infinite;
   animation-timing-function: linear;
+}
+
+.JoinForm {
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  background: white;
+  width: 400px;
+  height: 300px;
+  border-radius: 3px;
+  box-shadow: 1px 1px 8px var(--shadow-gray);
+}
+
+.JoinForm .joinField input {
+  appearance: none;
+  border: none;
+  border-radius: 3px;
+  box-shadow: 0 0 1px 1px var(--shadow-gray);
+  padding: var(--padding-1);
+}
+
+.JoinForm button {
+  appearance: none;
+  border: none;
+  background: white;
+  padding: var(--padding-1);
+  background: blue;
+  color: white;
+  padding: var(--padding-1) var(--padding-2);
+  border-radius: 3px;
 }

@@ -4,9 +4,14 @@ import cx from "clsx";
 import styles from "./App.module.css";
 import { faPhone, faSpinner } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { useMediaStream } from "./hooks";
+import { useMediaStream, useViewport } from "./hooks";
 import { useImmer } from "use-immer";
-import { animated, useSpring, config as springConfig } from "react-spring";
+import {
+  animated,
+  useSpring,
+  config as springConfig,
+  useTransition
+} from "react-spring";
 
 const Peer = window.SimplePeer;
 const P2PT = window.P2PT;
@@ -19,7 +24,7 @@ function Avatars({ children }) {
   );
 }
 
-function Avatar({ mediaStream, location, listenerLocation, muted }) {
+function Avatar({ name, mediaStream, location, listenerLocation, muted }) {
   const [playing, setPlaying] = React.useState(false);
   const videoRef = React.useRef(null);
 
@@ -44,7 +49,10 @@ function Avatar({ mediaStream, location, listenerLocation, muted }) {
     const m = listenerLocation;
     const d = Math.sqrt(Math.pow(m[0] - l[0], 2) + Math.pow(m[1] - l[1], 2));
     const v = Math.min(
-      Math.max(Math.pow(1 - d / window.innerWidth, 2.0), 0.0),
+      Math.max(
+        Math.pow(1 - d / document.documentElement.clientWidth, 2.0),
+        0.0
+      ),
       1.0
     );
     return v;
@@ -68,7 +76,9 @@ function Avatar({ mediaStream, location, listenerLocation, muted }) {
     >
       <div className={styles.avatarInset}>
         <video ref={videoRefFunc} muted={muted} autoPlay playsInline />
-        <div className={styles.avatarVolume}>{Math.ceil(volume * 100)}</div>
+        <div className={styles.avatarVolume}>
+          {name} {Math.ceil(volume * 100)}
+        </div>
       </div>
     </animated.div>
   );
@@ -87,8 +97,8 @@ function PeerAvatar({
   const [peerLocation, setPeerLocation] = React.useState(() => {
     // Randomly outside grid?
     return [
-      Math.random() * window.innerWidth,
-      Math.random() * window.innerHeight
+      Math.random() * document.documentElement.clientWidth,
+      Math.random() * document.documentElement.clientHeight
     ];
   });
 
@@ -151,6 +161,7 @@ function PeerAvatar({
     peer.send(JSON.stringify(payload));
   }, [peer, localLocation]);
 
+  /*
   React.useEffect(() => {
     return () => {
       if (peer) {
@@ -158,6 +169,7 @@ function PeerAvatar({
       }
     };
   }, [peer]);
+  */
 
   return (
     <Avatar
@@ -184,8 +196,34 @@ function HUD({ children, onChooseLocation }) {
   );
 }
 
+const JoinForm = ({ style, disabled, onJoin }) => {
+  const [name, setName] = React.useState("");
+
+  return (
+    <div className={styles.JoinForm} style={style}>
+      <div className={styles.joinField}>
+        <input
+          placeholder="Name"
+          type="text"
+          disabled={disabled}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+      </div>
+      <div>
+        <button type="button" disabled={disabled} onClick={() => onJoin(name)}>
+          Join
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const AnimatedJoinForm = animated(JoinForm);
+
 export default function App() {
   const [peerTracker, setPeerTracker] = React.useState(null);
+  const [localName, setLocalName] = React.useState(null);
 
   React.useEffect(() => {
     const interval = setInterval(() => {
@@ -200,9 +238,11 @@ export default function App() {
     };
   }, [peerTracker]);
 
+  const viewport = useViewport();
+
   const [location, setLocation] = React.useState(() => [
-    window.innerWidth / 2,
-    window.innerHeight / 2
+    viewport.width / 2,
+    viewport.height / 2
   ]);
 
   const { mediaStream, error: mediaError } = useMediaStream({
@@ -212,115 +252,142 @@ export default function App() {
 
   const [avatars, updateAvatars] = useImmer({});
 
-  const handleJoin = React.useCallback(() => {
-    const room = window.location.hash || "general";
-
-    let announceURLs = [
-      "wss://tracker.openwebtorrent.com"
-      // Connections fail:
-      // "wss://tracker.sloppyta.co:443/announce",
-      // "wss://tracker.novage.com.ua:443/announce"
-      // "wss://tracker.btorrent.xyz:443/announce"
-    ];
-
-    const p2pt = new P2PT(announceURLs, "webrtc-locality-" + room);
-    const msgHandlers = {};
-
-    p2pt.on("peerconnect", (signalingPeer) => {
-      console.log("peerconnect");
-
-      let avatarPeer = null;
-      let signalBuf = null;
-
-      const handleSendSignal = (signal) => {
-        console.log("signal", signal);
-        p2pt.send(signalingPeer, {
-          type: "signal",
-          signal
-        });
-      };
-
-      const handleRecieveMsgSignal = (msgPeer, msg) => {
-        console.log("msg", msgPeer, msg);
-        // Reject messages for other peers, since this is a common bus
-        if (msgPeer.id !== signalingPeer.id || msg.type !== "signal") {
-          return;
-        }
-
-        if (!avatarPeer) {
-          signalBuf = msg.signal;
-          return;
-        }
-
-        avatarPeer.signal(msg.signal);
-      };
-
-      const handleCreatePeer = (newPeer) => {
-        console.log("handleCreatePeer");
-        avatarPeer = newPeer;
-
-        if (signalBuf) {
-          avatarPeer.signal(signalBuf);
-          signalBuf = null;
-        }
-
-        updateAvatars((draftAvatars) => {
-          const avatar = draftAvatars[signalingPeer.id];
-          if (avatar) {
-            avatar.connected = true;
-          }
-        });
-      };
-
-      const handleDestroyPeer = () => {
-        console.log("handleDestroyPeer");
-        avatarPeer = null;
-        signalBuf = null;
-
-        updateAvatars((draftAvatars) => {
-          const avatar = draftAvatars[signalingPeer.id];
-          if (avatar) {
-            avatar.connected = false;
-          }
-        });
-      };
-
-      msgHandlers[signalingPeer.id] = handleRecieveMsgSignal;
-      p2pt.on("msg", handleRecieveMsgSignal);
-
+  const handleCreateAvatar = React.useCallback(
+    (signalingPeer, handlers) => {
       updateAvatars((draftAvatars) => {
         draftAvatars[signalingPeer.id] = {
           signalingPeer,
-          connected: false,
-          onSendSignal: handleSendSignal,
-          onCreatePeer: handleCreatePeer,
-          onDestroyPeer: handleDestroyPeer
+          onSendSignal: handlers.handleSendSignal,
+          onCreatePeer: handlers.handleCreatePeer,
+          onDestroyPeer: handlers.handleDestroyPeer
         };
       });
-    });
+    },
+    [updateAvatars]
+  );
 
-    p2pt.on("peerclose", (signalingPeer) => {
-      console.log("peerclose");
-
-      // p2pt does not have an off() method
-      p2pt.removeListener("msg", msgHandlers[signalingPeer.id]);
-
+  const handleDestroyAvatar = React.useCallback(
+    (signalingPeer) => {
       updateAvatars((draftAvatars) => {
         delete draftAvatars[signalingPeer.id];
       });
-    });
+    },
+    [updateAvatars]
+  );
 
-    p2pt.start();
+  const handleJoin = React.useCallback(
+    (joinName) => {
+      setLocalName(joinName);
 
-    setPeerTracker(p2pt);
-  }, [updateAvatars]);
+      const room = window.location.hash || "general";
+
+      let announceURLs = [
+        "wss://tracker.openwebtorrent.com"
+        // Connections fail:
+        // "wss://tracker.sloppyta.co:443/announce",
+        // "wss://tracker.novage.com.ua:443/announce"
+        // "wss://tracker.btorrent.xyz:443/announce"
+      ];
+
+      const p2pt = new P2PT(announceURLs, "webrtc-locality-" + room);
+      const peerHandlers = new Map();
+
+      p2pt.on("peerconnect", (signalingPeer) => {
+        console.log("peerconnect");
+
+        const handlers = {
+          handleSendSignal(signal) {
+            console.log("signal", signal);
+            p2pt.send(signalingPeer, {
+              type: "signal",
+              signal
+            });
+          },
+          handleCreatePeer(newPeer) {
+            console.log("handleCreatePeer");
+            peerHandlers.get(signalingPeer.id).avatarPeer = newPeer;
+          },
+          handleDestroyPeer() {
+            console.log("handleDestroyPeer");
+            peerHandlers.get(signalingPeer.id).avatarPeer = null;
+          }
+        };
+
+        peerHandlers.set(signalingPeer.id, handlers);
+
+        if (signalingPeer.initiator) {
+          p2pt.send(signalingPeer, {
+            type: "init",
+            init: { name: joinName }
+          });
+        }
+
+        handleCreateAvatar(signalingPeer, handlers);
+      });
+
+      p2pt.on("msg", (signalingPeer, msg) => {
+        console.log("msg", signalingPeer, msg);
+
+        if (msg.type === "signal") {
+          const handler = peerHandlers.get(signalingPeer.id);
+          const avatarPeer = handler?.avatarPeer;
+
+          if (avatarPeer) {
+            avatarPeer.signal(msg.signal);
+          } else {
+            console.warn(
+              `dropped signal coming from ${signalingPeer.id} with value ${msg.signal}`
+            );
+          }
+        } else if (msg.type === "init") {
+          const handler = peerHandlers.get(signalingPeer.id);
+
+          if (handler) {
+            handler.ready = true;
+            handler.name = msg.init.name;
+            if (!signalingPeer.initiator) {
+              p2pt.send(signalingPeer, {
+                type: "init",
+                init: { name: joinName }
+              });
+            }
+          } else {
+            console.warn(
+              `dropped init coming from ${signalingPeer.id} with value ${msg.init}`
+            );
+          }
+        }
+      });
+
+      p2pt.on("peerclose", (signalingPeer) => {
+        console.log("peerclose");
+
+        peerHandlers.delete(signalingPeer.id);
+
+        handleDestroyAvatar(signalingPeer);
+      });
+
+      p2pt.start();
+
+      setPeerTracker(p2pt);
+    },
+    [handleCreateAvatar, handleDestroyAvatar]
+  );
 
   const handleChooseLocation = (location) => {
     setLocation(location);
   };
 
-  React.useEffect(handleJoin, [handleJoin]);
+  //React.useEffect(() => handleJoin("Josh"), [handleJoin]);
 
+  const transitions = useTransition(!peerTracker, {
+    enter: {
+      opacity: 1
+    },
+    leave: {
+      opacity: 0
+    }
+  });
   if (mediaError) {
     return (
       <div>
@@ -333,16 +400,7 @@ export default function App() {
 
   return (
     <>
-      <HUD onChooseLocation={handleChooseLocation}>
-        <button
-          type="button"
-          style={{ position: "absolute", left: "0", top: "0" }}
-          disabled={!!peerTracker}
-          onClick={handleJoin}
-        >
-          Join
-        </button>
-      </HUD>
+      <HUD onChooseLocation={handleChooseLocation}></HUD>
       <Avatars>
         {Object.values(avatars).map((avatar) => (
           <PeerAvatar
@@ -357,12 +415,23 @@ export default function App() {
         ))}
 
         <Avatar
+          name={localName}
           mediaStream={mediaStream}
           location={location}
           listenerLocation={location}
           muted
         />
       </Avatars>
+      {transitions(
+        (stylez, item) =>
+          item && (
+            <AnimatedJoinForm
+              style={{ opacity: stylez.opacity }}
+              disabled={!!peerTracker}
+              onJoin={handleJoin}
+            />
+          )
+      )}
     </>
   );
 }

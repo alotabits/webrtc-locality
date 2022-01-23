@@ -138,3 +138,23 @@ export function usePromise(promise, initState = null) {
 
   return state;
 }
+
+export function useViewport() {
+  const [viewport, setViewport] = useState(() => ({
+    width: document.documentElement.clientWidth,
+    height: document.documentElement.clientHeight
+  }));
+
+  useEffect(() => {
+    const listener = window.addEventListener("resize", () => {
+      setViewport({
+        width: document.documentElement.clientWidth,
+        height: document.documentElement.clientHeight
+      });
+    });
+
+    return () => window.removeEventListener("resize", listener);
+  }, []);
+
+  return viewport;
+}
