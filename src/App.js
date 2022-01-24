@@ -306,7 +306,6 @@ export default function App() {
 					handleSendSignal(signal) {
 						logit(`handleSendSignal: ${id}`);
 						console.log(signal);
-						console.log(this);
 						p2pt.send(signalingPeer, {
 							type: "signal",
 							signal,
