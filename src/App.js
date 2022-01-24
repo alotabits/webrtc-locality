@@ -370,8 +370,8 @@ export default function App() {
 			});
 
 			p2pt.on("peerclose", (signalingPeer) => {
-				logit(`peerclose: ${id}`);
 				const { id } = signalingPeer;
+				logit(`peerclose: ${id}`);
 
 				if (!peerHandlers.has(id)) {
 					logit(`handlers missing for peerclose on ${id}`);
