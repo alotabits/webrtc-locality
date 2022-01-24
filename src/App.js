@@ -304,33 +304,41 @@ export default function App() {
 				const { id, initiator } = signalingPeer;
 				logit(`peerconnect: ${id}`);
 
+				let signalResolve;
+				let signalReady = new Promise((resolve) => {
+					signalResolve = resolve;
+				});
+
 				const handlers = {
+					signalResolve,
 					handleSendSignal(signal) {
-						logit(`handleSendSignal: ${id}`);
+						// logit(`handleSendSignal: ${id}`);
 						console.log(signal);
-						p2pt.send(signalingPeer, {
-							type: "signal",
-							signal,
+
+						signalReady.then(() => {
+							p2pt.send(signalingPeer, {
+								type: "signal",
+								signal,
+							});
 						});
 					},
 					handleCreatePeer(newPeer) {
-						logit(`handleCreatePeer: ${id}`);
+						// logit(`handleCreatePeer: ${id}`);
 						handlers.avatarPeer = newPeer;
+						if (!handlers.initialized) {
+							p2pt.send(signalingPeer, {
+								type: "init",
+								init: { name: joinName },
+							});
+						}
 					},
 					handleDestroyPeer() {
-						logit(`handleDestroyPeer: ${id}`);
+						// logit(`handleDestroyPeer: ${id}`);
 						handlers.avatarPeer = null;
 					},
 				};
 
 				peerHandlers.set(id, handlers);
-
-				if (initiator) {
-					p2pt.send(signalingPeer, {
-						type: "init",
-						init: { name: joinName },
-					});
-				}
 
 				handleCreateAvatar(id, initiator, handlers);
 			});
@@ -358,18 +366,12 @@ export default function App() {
 					}
 				} else if (msg.type === "init") {
 					if (handlers) {
-						handlers.ready = true;
-						handlers.name = msg.init.name;
+						handlers.initialized = true;
+						handlers.signalResolve();
 
 						updateAvatars((draftAvatars) => {
 							draftAvatars[id].name = msg.init.name;
 						});
-						if (!initiator) {
-							p2pt.send(signalingPeer, {
-								type: "init",
-								init: { name: joinName },
-							});
-						}
 					} else {
 						logit(`msg: ${id}: dropped init coming from ${id}`);
 						logit(msg.init);
