@@ -228,6 +228,7 @@ export default function App() {
 	const [peerTracker, setPeerTracker] = React.useState(null);
 	const [localName, setLocalName] = React.useState(null);
 
+	/*
 	React.useEffect(() => {
 		const interval = setInterval(() => {
 			if (peerTracker) {
@@ -240,6 +241,7 @@ export default function App() {
 			clearInterval(interval);
 		};
 	}, [peerTracker, logit]);
+	*/
 
 	const viewport = useViewport();
 
