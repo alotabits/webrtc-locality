@@ -306,6 +306,7 @@ export default function App() {
 					handleSendSignal(signal) {
 						logit(`handleSendSignal: ${id}`);
 						console.log(signal);
+						console.log(this);
 						p2pt.send(signalingPeer, {
 							type: "signal",
 							signal,
@@ -313,11 +314,11 @@ export default function App() {
 					},
 					handleCreatePeer(newPeer) {
 						logit(`handleCreatePeer: ${id}`);
-						peerHandlers.get(id).avatarPeer = newPeer;
+						handlers.avatarPeer = newPeer;
 					},
 					handleDestroyPeer() {
 						logit(`handleDestroyPeer: ${id}`);
-						peerHandlers.get(id).avatarPeer = null;
+						handlers.avatarPeer = null;
 					},
 				};
 
