@@ -312,7 +312,7 @@ export default function App() {
 				const handlers = {
 					signalResolve,
 					handleSendSignal(signal) {
-						// logit(`handleSendSignal: ${id}`);
+						logit(`handleSendSignal: ${id}`);
 						console.log(signal);
 
 						signalReady.then(() => {
@@ -323,7 +323,7 @@ export default function App() {
 						});
 					},
 					handleCreatePeer(newPeer) {
-						// logit(`handleCreatePeer: ${id}`);
+						logit(`handleCreatePeer: ${id}`);
 						handlers.avatarPeer = newPeer;
 						if (!handlers.initialized) {
 							p2pt.send(signalingPeer, {
@@ -333,7 +333,7 @@ export default function App() {
 						}
 					},
 					handleDestroyPeer() {
-						// logit(`handleDestroyPeer: ${id}`);
+						logit(`handleDestroyPeer: ${id}`);
 						handlers.avatarPeer = null;
 					},
 				};
@@ -350,7 +350,7 @@ export default function App() {
 
 				const handlers = peerHandlers.get(id);
 				if (!handlers) {
-					logit(`msg: ${id}: handlers missing for msg`);
+					logit(`msg: ${id}: handlers missing for msg with type ${msg.type}`);
 					console.log(msg);
 					return;
 				}
@@ -444,8 +444,8 @@ export default function App() {
 				}}
 			>
 				Log:
-				{log.map((entry) => (
-					<div>{entry}</div>
+				{log.map((entry, i) => (
+					<div key={i}>{entry}</div>
 				))}
 			</div>
 
