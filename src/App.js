@@ -85,6 +85,7 @@ function PeerAvatar({
 	localMediaStream,
 	localLocation,
 	initiator,
+	name,
 	onSendSignal,
 	onCreatePeer,
 	onDestroyPeer,
@@ -170,6 +171,7 @@ function PeerAvatar({
 
 	return (
 		<Avatar
+			name={name}
 			mediaStream={peerMediaStream}
 			location={peerLocation}
 			listenerLocation={localLocation}
@@ -358,6 +360,10 @@ export default function App() {
 					if (handlers) {
 						handlers.ready = true;
 						handlers.name = msg.init.name;
+
+						updateAvatars((draftAvatars) => {
+							draftAvatars[id].name = msg.init.name;
+						});
 						if (!initiator) {
 							p2pt.send(signalingPeer, {
 								type: "init",
@@ -449,6 +455,7 @@ export default function App() {
 						localMediaStream={mediaStream}
 						localLocation={location}
 						initiator={avatar.initiator}
+						name={avatar.name}
 						onSendSignal={avatar.onSendSignal}
 						onCreatePeer={avatar.onCreatePeer}
 						onDestroyPeer={avatar.onDestroyPeer}
