@@ -338,7 +338,7 @@ export default function App() {
 
 						h.avatarPeer = newPeer;
 
-						if (initiator) {
+						if (!initiator) {
 							h.handleSendInit();
 						}
 					},
@@ -381,7 +381,7 @@ export default function App() {
 						console.log(msg.signal);
 					}
 				} else if (msg.type === "init") {
-					if (!initiator) {
+					if (initiator) {
 						handlers.handleSendInit();
 					}
 
