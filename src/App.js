@@ -324,8 +324,15 @@ export default function App() {
 					},
 					handleCreatePeer(newPeer) {
 						logit(`handleCreatePeer: ${id}`);
-						handlers.avatarPeer = newPeer;
-						if (!handlers.initialized) {
+						const h = peerHandlers.get(id);
+						if (!h) {
+							logit(`handlers missing for handleCreatePeer`);
+							return;
+						}
+
+						h.avatarPeer = newPeer;
+
+						if (!h.initialized) {
 							p2pt.send(signalingPeer, {
 								type: "init",
 								init: { name: joinName },
@@ -334,7 +341,13 @@ export default function App() {
 					},
 					handleDestroyPeer() {
 						logit(`handleDestroyPeer: ${id}`);
-						handlers.avatarPeer = null;
+						const h = peerHandlers.get(id);
+						if (!h) {
+							logit(`handlers missing for handleDestroyPeer`);
+							return;
+						}
+
+						h.avatarPeer = null;
 					},
 				};
 
