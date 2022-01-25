@@ -361,7 +361,7 @@ export default function App() {
 
 			p2pt.on("msg", (signalingPeer, msg) => {
 				const { id, initiator } = signalingPeer;
-				logit(`msg: ${id}: type ${msg.type}`);
+				logit(`msg: ${id}, ${initiator}: type ${msg.type}`);
 				console.log(msg);
 
 				const handlers = peerHandlers.get(id);
@@ -458,6 +458,7 @@ export default function App() {
 					inset: 0,
 					overflow: "scroll",
 					paddingLeft: "1em",
+					fontSize: "50%",
 				}}
 			>
 				Log:
