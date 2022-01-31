@@ -273,7 +273,14 @@ const JoinForm = ({ style, disabled, onJoin }) => {
 	const [name, setName] = React.useState("");
 
 	return (
-		<div className={styles.JoinForm} style={style}>
+		<form
+			className={styles.JoinForm}
+			style={style}
+			onSubmit={(e) => {
+				e.preventDefault();
+				onJoin(name);
+			}}
+		>
 			<div className={styles.joinField}>
 				<input
 					placeholder="Name"
@@ -284,11 +291,9 @@ const JoinForm = ({ style, disabled, onJoin }) => {
 				/>
 			</div>
 			<div>
-				<button type="button" disabled={disabled} onClick={() => onJoin(name)}>
-					Join
-				</button>
+				<button disabled={disabled}>Join</button>
 			</div>
-		</div>
+		</form>
 	);
 };
 
