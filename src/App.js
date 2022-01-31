@@ -21,13 +21,7 @@ function Avatars({ children }) {
 	);
 }
 
-function Avatar({
-	listenerLocation,
-	name,
-	mediaStream,
-	location = [0, 0],
-	muted,
-}) {
+function Avatar({ listenerLocation, name, mediaStream, location, muted }) {
 	const [playing, setPlaying] = React.useState(false);
 	const videoRef = React.useRef(null);
 
@@ -88,6 +82,7 @@ function Avatar({
 }
 
 function PeerAvatar({ peerHandler, listenerLocation }) {
+	const [connected, setConnected] = React.useState(false);
 	const [name, setName] = React.useState("");
 	const [mediaStream, setMediaStream] = React.useState(null);
 	const [location, setLocation] = React.useState(() => {
@@ -100,8 +95,12 @@ function PeerAvatar({ peerHandler, listenerLocation }) {
 
 	React.useEffect(() => {
 		peerHandler.connect({
-			onConnect: () => {},
-			onDisconnect: () => {},
+			onConnect: () => {
+				setConnected(true);
+			},
+			onDisconnect: () => {
+				setConnected(false);
+			},
 			onName: setName,
 			onStream: setMediaStream,
 			onLocation: setLocation,
@@ -111,6 +110,10 @@ function PeerAvatar({ peerHandler, listenerLocation }) {
 			peerHandler.disconnect();
 		};
 	}, [peerHandler]);
+
+	if (!connected) {
+		return null;
+	}
 
 	return (
 		<Avatar
@@ -130,7 +133,7 @@ class PeerHandler {
 		localLocation,
 		localMediaStream,
 		log,
-		onSignal,
+		sendSignal,
 	}) {
 		this.id = id;
 		this.initiator = initiator;
@@ -138,7 +141,7 @@ class PeerHandler {
 		this.localLocation = localLocation;
 		this.localMediaStream = localMediaStream;
 		this.log = log;
-		this.onSignal = onSignal;
+		this.sendSignal = sendSignal;
 
 		this._resetPeerState();
 	}
@@ -162,12 +165,12 @@ class PeerHandler {
 		});
 
 		peer.on("signal", (signal) => {
-			const { id, onSignal } = this;
+			const { id, sendSignal } = this;
 
 			this.log(`signal ${id}`);
 			console.log(signal);
 
-			onSignal(signal);
+			sendSignal(signal);
 		});
 
 		peer.on("connect", () => {
@@ -176,7 +179,7 @@ class PeerHandler {
 			onConnect();
 			peer.send(JSON.stringify({ type: "name", name: this.localName }));
 			peer.send(
-				JSON.stringify({ type: "location", location: this.locationLocation })
+				JSON.stringify({ type: "location", location: this.localLocation })
 			);
 		});
 
@@ -228,7 +231,7 @@ class PeerHandler {
 		this._resetPeerState();
 	}
 
-	signal(signal) {
+	receiveSignal(signal) {
 		const { id, initiator, peer } = this;
 
 		this.log(`signal : ${id}, ${initiator}`);
@@ -380,7 +383,7 @@ export default function App() {
 					localLocation: joinLocation,
 					localMediaStream: joinStream,
 					log: logit,
-					onSignal: (signal) => {
+					sendSignal: (signal) => {
 						p2pt.send(signalingPeer, { type: "signal", signal });
 					},
 				});
@@ -410,7 +413,7 @@ export default function App() {
 				}
 
 				if (msg.type === "signal") {
-					peerHandler.signal(msg.signal);
+					peerHandler.receiveSignal(msg.signal);
 				}
 			});
 
@@ -439,7 +442,6 @@ export default function App() {
 
 	React.useEffect(() => {
 		Object.values(avatars).forEach((avatar) => {
-			console.log(avatar.peerHandler);
 			avatar.peerHandler.sendLocation(location);
 		});
 	}, [avatars, location]);
