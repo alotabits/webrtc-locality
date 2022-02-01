@@ -30,7 +30,14 @@ function Avatars({ audioContext, children }) {
 	);
 }
 
-function Avatar({ listenerLocation, name, mediaStream, location, muted }) {
+function Avatar({
+	listenerLocation,
+	name,
+	mediaStream,
+	location,
+	muted,
+	mirror,
+}) {
 	const [playing, setPlaying] = React.useState(false);
 	const videoRef = React.useRef(null);
 
@@ -104,7 +111,13 @@ function Avatar({ listenerLocation, name, mediaStream, location, muted }) {
 			style={springStyles}
 		>
 			<div className={styles.avatarInset}>
-				<video ref={videoRefFunc} muted autoPlay playsInline />
+				<video
+					style={{ transform: mirror ? "scaleX(-1)" : null }}
+					ref={videoRefFunc}
+					muted
+					autoPlay
+					playsInline
+				/>
 				<div className={styles.avatarVolume}>
 					{name} {Math.ceil(volume * 100)}
 				</div>
@@ -532,6 +545,7 @@ export default function App() {
 					mediaStream={mediaStream}
 					location={location}
 					muted
+					mirror
 				/>
 			</Avatars>
 			{transitions(
