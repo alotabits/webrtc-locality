@@ -42,14 +42,11 @@ function Avatar({ listenerLocation, name, mediaStream, location, muted }) {
 		const l = location;
 		const m = listenerLocation;
 		const d = Math.sqrt(Math.pow(m[0] - l[0], 2) + Math.pow(m[1] - l[1], 2));
-		const v = Math.min(
-			Math.max(
-				Math.pow(1 - d / document.documentElement.clientWidth, 2.0),
-				0.0
-			),
-			1.0
+		const i = Math.min(
+			Math.max(1 - d / document.documentElement.clientWidth, 0),
+			1
 		);
-		return v;
+		return Math.pow(i, 2.0);
 	}, [muted, location, listenerLocation]);
 
 	const { audioContext } = React.useContext(AvatarContext);
