@@ -6,6 +6,7 @@ import {
 	useSpring,
 	useTransition,
 } from "react-spring";
+import { useEffect } from "react/cjs/react.development";
 import { useImmer } from "use-immer";
 import styles from "./App.module.css";
 import { useMediaStream, useViewport } from "./hooks";
@@ -13,29 +14,25 @@ import { useMediaStream, useViewport } from "./hooks";
 const Peer = window.SimplePeer;
 const P2PT = window.P2PT;
 
-function Avatars({ children }) {
+const AvatarContext = React.createContext({
+	audioContext: null,
+});
+
+function Avatars({ audioContext, children }) {
+	const contextValue = React.useMemo(() => ({ audioContext }), [audioContext]);
+
 	return (
-		<div className={[styles.Avatars]} style={{ pointerEvents: "none" }}>
-			{children}
-		</div>
+		<AvatarContext.Provider value={contextValue}>
+			<div className={[styles.Avatars]} style={{ pointerEvents: "none" }}>
+				{children}
+			</div>
+		</AvatarContext.Provider>
 	);
 }
 
 function Avatar({ listenerLocation, name, mediaStream, location, muted }) {
 	const [playing, setPlaying] = React.useState(false);
 	const videoRef = React.useRef(null);
-
-	const videoRefFunc = React.useCallback(
-		(/** @type HTMLMediaElement */ ref) => {
-			videoRef.current = ref;
-			if (ref) {
-				ref.srcObject = mediaStream;
-				ref.play();
-				setTimeout(() => setPlaying(true), 0); // TODO: mount check?
-			}
-		},
-		[mediaStream]
-	);
 
 	const volume = React.useMemo(() => {
 		if (muted) {
@@ -55,11 +52,49 @@ function Avatar({ listenerLocation, name, mediaStream, location, muted }) {
 		return v;
 	}, [muted, location, listenerLocation]);
 
-	React.useEffect(() => {
-		if (videoRef.current) {
-			videoRef.current.volume = volume;
+	const { audioContext } = React.useContext(AvatarContext);
+	const gainRef = React.useRef({ value: 0, setValue: () => {} });
+
+	useEffect(() => {
+		if (!mediaStream) {
+			gainRef.current.setValue = (gain) => {
+				gainRef.current.value = gain;
+			};
+			return;
 		}
+
+		var gainNode = audioContext.createGain();
+		gainNode.gain.value = gainRef.current.value;
+		audioContext
+			.createMediaStreamSource(mediaStream)
+			.connect(gainNode)
+			.connect(audioContext.destination);
+		gainRef.current.setValue = (gain) => {
+			console.log("Gain", gain);
+			gainRef.current.value = gain;
+			gainNode.gain.value = gain;
+		};
+
+		return () => {
+			gainNode.disconnect(audioContext.destination);
+		};
+	}, [audioContext, mediaStream]);
+
+	React.useEffect(() => {
+		gainRef.current.setValue(volume);
 	}, [volume]);
+
+	const videoRefFunc = React.useCallback(
+		(/** @type HTMLMediaElement */ ref) => {
+			videoRef.current = ref;
+			if (ref) {
+				ref.srcObject = mediaStream;
+				ref.play();
+				setTimeout(() => setPlaying(true), 0); // TODO: mount check?
+			}
+		},
+		[mediaStream]
+	);
 
 	const springStyles = useSpring({
 		transform: `translate3d(${location[0]}px, ${location[1]}px, 0) translate3d(-50%, -50%, 0)`,
@@ -72,7 +107,7 @@ function Avatar({ listenerLocation, name, mediaStream, location, muted }) {
 			style={springStyles}
 		>
 			<div className={styles.avatarInset}>
-				<video ref={videoRefFunc} muted={!!muted} autoPlay playsInline />
+				<video ref={videoRefFunc} muted autoPlay playsInline />
 				<div className={styles.avatarVolume}>
 					{name} {Math.ceil(volume * 100)}
 				</div>
@@ -309,20 +344,7 @@ export default function App() {
 	const [peerTracker, setPeerTracker] = React.useState(null);
 	const [localName, setLocalName] = React.useState(null);
 
-	/*
-	React.useEffect(() => {
-		const interval = setInterval(() => {
-			if (peerTracker) {
-				logit("requesting more peers");
-				peerTracker.requestMorePeers();
-			}
-		}, 3000);
-
-		return () => {
-			clearInterval(interval);
-		};
-	}, [peerTracker, logit]);
-	*/
+	const [audioContext] = React.useState(() => new AudioContext());
 
 	const viewport = useViewport();
 
@@ -362,6 +384,7 @@ export default function App() {
 	const handleJoin = React.useCallback(
 		(joinName, joinLocation, joinStream) => {
 			setLocalName(joinName);
+			audioContext.resume();
 
 			const room = window.location.hash || "general";
 
@@ -438,7 +461,7 @@ export default function App() {
 
 			setPeerTracker(p2pt);
 		},
-		[handleCreateAvatar, handleDestroyAvatar, logit]
+		[audioContext, handleCreateAvatar, handleDestroyAvatar, logit]
 	);
 
 	const handleChooseLocation = (location) => {
@@ -497,7 +520,7 @@ export default function App() {
 			</div>
 
 			<HUD onChooseLocation={handleChooseLocation}></HUD>
-			<Avatars>
+			<Avatars audioContext={audioContext}>
 				{Object.values(avatars).map((avatar) => (
 					<PeerAvatar
 						key={avatar.id}
