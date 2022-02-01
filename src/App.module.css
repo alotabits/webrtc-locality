@@ -1,210 +1,214 @@
 :global(html) {
-  font-family: sans-serif;
-  --shadow-gray: lightgray;
-  --padding-1: 5px;
-  --padding-2: 10px;
+	font-family: sans-serif;
+	--shadow-gray: lightgray;
+	--padding-1: 5px;
+	--padding-2: 10px;
 }
 
 .App {
-  font-family: sans-serif;
-  text-align: center;
+	font-family: sans-serif;
+	text-align: center;
 }
 
 .Avatar {
-  background: white;
-  position: absolute;
+	background: white;
+	position: absolute;
 
-  padding: 10px;
-  box-shadow: 0 0 1px 0px lightblue, 0 0 5px var(--shadow-gray) inset,
-    1px 1px 5px var(--shadow-gray);
-  border-radius: 50%;
-  font-family: sans-serif;
+	padding: 10px;
+	box-shadow: 0 0 1px 0px lightblue, 0 0 5px var(--shadow-gray) inset,
+		1px 1px 5px var(--shadow-gray);
+	border-radius: 50%;
+	font-family: sans-serif;
 }
 
 .Avatar video {
-  display: block;
-  width: 150px;
-  height: 150px;
-  object-fit: cover;
-  border-radius: 50%;
-  z-index: -1;
-  position: relative;
-  opacity: 0;
+	display: block;
+	width: 150px;
+	height: 150px;
+	object-fit: cover;
+	border-radius: 50%;
+	z-index: -1;
+	position: relative;
+	opacity: 0;
 }
 
 .Avatar .avatarInset {
-  border-radius: 50%;
-  box-shadow: 0 0 10px var(--shadow-gray) inset;
-  isolation: isolate;
+	border-radius: 50%;
+	box-shadow: 0 0 10px var(--shadow-gray) inset;
+	isolation: isolate;
 }
 
 .Avatar.avatarVideo video {
-  transition: opacity 1s ease;
-  opacity: 1;
+	transition: opacity 1s ease;
+	opacity: 1;
 }
 
 .Avatar .avatarVolume {
-  position: absolute;
-  bottom: 10px;
-  right: 10px;
-  min-width: 32px;
-  /* height: 32px; */
-  border-radius: 16px;
-  background: white;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  box-shadow: 0 0 0 1px var(--shadow-gray);
-  font-size: 80%;
-  padding: var(--padding-1);
+	position: absolute;
+	bottom: 10px;
+	right: 10px;
+	min-width: 32px;
+	/* height: 32px; */
+	border-radius: 16px;
+	background: white;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	box-shadow: 0 0 0 1px var(--shadow-gray);
+	font-size: 80%;
+	padding: var(--padding-1);
 }
 
 .CallDialog {
-  background: white;
-  box-shadow: 0 0 10px var(--shadow-gray);
-  position: fixed;
-  bottom: 10px;
-  right: 10px;
-  padding: 10px;
+	background: white;
+	box-shadow: 0 0 10px var(--shadow-gray);
+	position: fixed;
+	bottom: 10px;
+	right: 10px;
+	padding: 10px;
 }
 
 .CallDialog button + button {
-  margin-left: 10px;
+	margin-left: 10px;
 }
 
 .Avatars {
-  position: fixed;
-  inset: 0;
+	position: fixed;
+	inset: 0;
 }
 
 .HUD {
-  position: fixed;
-  inset: 0;
-  box-shadow: 0 0 20px var(--shadow-gray) inset;
+	position: fixed;
+	inset: 0;
+	box-shadow: 0 0 20px var(--shadow-gray) inset;
 }
 
 .HUD .hudLocator {
-  position: absolute;
-  inset: 0;
+	position: absolute;
+	inset: 0;
 }
 
 .CallButton {
-  position: absolute;
-  right: 20px;
-  top: 20px;
-  display: flex;
-  flex-flow: column nowrap;
-  align-items: center;
-  gap: 10px;
-  font-family: sans-serif;
+	position: absolute;
+	right: 20px;
+	top: 20px;
+	display: flex;
+	flex-flow: column nowrap;
+	align-items: center;
+	gap: 10px;
+	font-family: sans-serif;
 }
 
 .CallButton .callButton {
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  border: none;
-  background: rgb(49, 204, 35);
-  cursor: pointer;
-  box-shadow: 0 0 4px 1px var(--shadow-gray);
+	border-radius: 50%;
+	width: 40px;
+	height: 40px;
+	border: none;
+	background: rgb(49, 204, 35);
+	cursor: pointer;
+	box-shadow: 0 0 4px 1px var(--shadow-gray);
 }
 
 .CallButton .callButton svg path {
-  fill: white;
+	fill: white;
 }
 
 .callButtonOverlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
+	position: fixed;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.5);
+	display: flex;
+	justify-content: center;
+	align-items: center;
 }
 
 .callButtonOverlay .callButtonDialog {
-  background: white;
-  display: flex;
-  flex-flow: column nowrap;
-  justify-content: center;
-  align-items: center;
-  padding: 20px;
-  gap: 10px;
+	background: white;
+	display: flex;
+	flex-flow: column nowrap;
+	justify-content: center;
+	align-items: center;
+	padding: 20px;
+	gap: 10px;
 }
 
 .AnswerButton {
-  position: absolute;
-  left: 20px;
-  top: 20px;
-  display: flex;
-  flex-flow: column nowrap;
-  align-items: center;
-  gap: 10px;
-  font-family: sans-serif;
+	position: absolute;
+	left: 20px;
+	top: 20px;
+	display: flex;
+	flex-flow: column nowrap;
+	align-items: center;
+	gap: 10px;
+	font-family: sans-serif;
 }
 
 .AnswerButton .answerButton {
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  border: none;
-  background: rgb(49, 204, 35);
-  cursor: pointer;
-  box-shadow: 0 0 4px 1px var(--shadow-gray);
+	border-radius: 50%;
+	width: 40px;
+	height: 40px;
+	border: none;
+	background: rgb(49, 204, 35);
+	cursor: pointer;
+	box-shadow: 0 0 4px 1px var(--shadow-gray);
 }
 
 .AnswerButton .answerButton svg path {
-  fill: white;
+	fill: white;
 }
 
 @keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+	from {
+		transform: rotate(0deg);
+	}
+	to {
+		transform: rotate(360deg);
+	}
 }
 
 .spin {
-  animation-name: spin;
-  animation-duration: 1000ms;
-  animation-iteration-count: infinite;
-  animation-timing-function: linear;
+	animation-name: spin;
+	animation-duration: 1000ms;
+	animation-iteration-count: infinite;
+	animation-timing-function: linear;
 }
 
 .JoinForm {
-  display: flex;
-  flex-flow: column nowrap;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
+	display: flex;
+	flex-flow: column nowrap;
+	justify-content: center;
+	align-items: center;
+	gap: 10px;
 
-  position: absolute;
-  inset: 0;
-  margin: auto;
-  background: white;
-  width: 400px;
-  height: 300px;
-  border-radius: 3px;
-  box-shadow: 1px 1px 8px var(--shadow-gray);
+	position: absolute;
+	inset: 0;
+	margin: auto;
+	background: white;
+	width: 400px;
+	height: 300px;
+	border-radius: 3px;
+	box-shadow: 1px 1px 8px var(--shadow-gray);
 }
 
 .JoinForm .joinField input {
-  appearance: none;
-  border: none;
-  border-radius: 3px;
-  box-shadow: 0 0 1px 1px var(--shadow-gray);
-  padding: var(--padding-1);
+	appearance: none;
+	border: none;
+	border-radius: 3px;
+	box-shadow: 0 0 1px 1px var(--shadow-gray);
+	padding: var(--padding-1);
 }
 
 .JoinForm button {
-  appearance: none;
-  border: none;
-  background: white;
-  padding: var(--padding-1);
-  background: blue;
-  color: white;
-  padding: var(--padding-1) var(--padding-2);
-  border-radius: 3px;
+	appearance: none;
+	border: none;
+	background: white;
+	padding: var(--padding-1);
+	background: blue;
+	color: white;
+	padding: var(--padding-1) var(--padding-2);
+	border-radius: 3px;
+}
+
+.JoinForm button:disabled {
+	opacity: 0.5;
 }

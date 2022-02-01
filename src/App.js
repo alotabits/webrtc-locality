@@ -314,7 +314,7 @@ function HUD({ children, onChooseLocation }) {
 	);
 }
 
-const JoinForm = ({ style, disabled, onJoin }) => {
+const JoinForm = ({ style, disabled, mediaStream, onJoin }) => {
 	const [name, setName] = React.useState("");
 
 	return (
@@ -335,8 +335,16 @@ const JoinForm = ({ style, disabled, onJoin }) => {
 					onChange={(e) => setName(e.target.value)}
 				/>
 			</div>
+			<div className={styles.joinField}>
+				<input
+					type="text"
+					readonly
+					disabled
+					value={mediaStream ? "Media ready" : "Waiting for media..."}
+				/>
+			</div>
 			<div>
-				<button disabled={disabled}>Join</button>
+				<button disabled={disabled || !mediaStream}>Join</button>
 			</div>
 		</form>
 	);
@@ -554,6 +562,7 @@ export default function App() {
 						<AnimatedJoinForm
 							style={{ opacity: stylez.opacity }}
 							disabled={!!peerTracker}
+							mediaStream={mediaStream}
 							onJoin={(name) => handleJoin(name, location, mediaStream)}
 						/>
 					)
