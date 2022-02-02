@@ -411,7 +411,8 @@ export default function App() {
 			setLocalName(joinName);
 			audioContext.resume();
 
-			const room = window.location.hash || "general";
+			const room = window.location.hash || crypto.randomUUID();
+			window.location.hash = room;
 
 			let announceURLs = [
 				"wss://tracker.openwebtorrent.com",
