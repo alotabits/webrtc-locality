@@ -63,6 +63,8 @@ function Avatar({
 		if (!mediaStream) {
 			gainRef.current.setValue = (gain) => {
 				gainRef.current.value = gain;
+				// For the spring style, not that it matters much.
+				return gain;
 			};
 			return;
 		}
@@ -77,16 +79,14 @@ function Avatar({
 			console.log("Gain", gain);
 			gainRef.current.value = gain;
 			gainNode.gain.value = gain;
+			// For the spring style, not that it matters much.
+			return gain;
 		};
 
 		return () => {
 			gainNode.disconnect(audioContext.destination);
 		};
 	}, [audioContext, mediaStream]);
-
-	React.useEffect(() => {
-		gainRef.current.setValue(volume);
-	}, [volume]);
 
 	const videoRefFunc = React.useCallback(
 		(/** @type HTMLMediaElement */ ref) => {
@@ -101,6 +101,7 @@ function Avatar({
 	);
 
 	const springStyles = useSpring({
+		volume,
 		transform: `translate3d(${location[0]}px, ${location[1]}px, 0) translate3d(-50%, -50%, 0)`,
 		config: springConfig.stiff,
 	});
@@ -108,7 +109,13 @@ function Avatar({
 	return (
 		<animated.div
 			className={cx(styles.Avatar, playing && styles.avatarVideo)}
-			style={springStyles}
+			style={{
+				// Hacky, but works.
+				"--volume": springStyles.volume.to((value) =>
+					gainRef.current.setValue(value)
+				),
+				transform: springStyles.transform,
+			}}
 		>
 			<div className={styles.avatarInset}>
 				<video
