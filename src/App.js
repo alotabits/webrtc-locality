@@ -544,7 +544,7 @@ export default function App() {
 				))}
 			</div>
 
-			<HUD onChooseLocation={handleChooseLocation}></HUD>
+			{peerTracker && <HUD onChooseLocation={handleChooseLocation}></HUD>}
 			<Avatars audioContext={audioContext}>
 				{Object.values(avatars).map((avatar) => (
 					<PeerAvatar
@@ -554,14 +554,16 @@ export default function App() {
 					/>
 				))}
 
-				<Avatar
-					listenerLocation={location}
-					name={localName}
-					mediaStream={mediaStream}
-					location={location}
-					muted
-					mirror
-				/>
+				{peerTracker && (
+					<Avatar
+						listenerLocation={location}
+						name={localName}
+						mediaStream={mediaStream}
+						location={location}
+						muted
+						mirror
+					/>
+				)}
 			</Avatars>
 			{transitions(
 				(stylez, item) =>
