@@ -6,10 +6,11 @@ import {
 	useSpring,
 	useTransition,
 } from "react-spring";
+import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
 import { useEffect } from "react/cjs/react.development";
 import { useImmer } from "use-immer";
 import styles from "./App.module.css";
-import { useMediaStream, useViewport } from "./hooks";
+import { useMediaStream } from "./hooks";
 
 const Peer = window.SimplePeer;
 const P2PT = window.P2PT;
@@ -359,6 +360,9 @@ const JoinForm = ({ style, disabled, mediaStream, onJoin }) => {
 
 const AnimatedJoinForm = animated(JoinForm);
 
+const worldWidth = 1920;
+const worldHeight = 1080;
+
 export default function App() {
 	const [log, setLog] = React.useState([]);
 	const logit = React.useCallback((entry) => {
@@ -371,11 +375,9 @@ export default function App() {
 
 	const [audioContext] = React.useState(() => new AudioContext());
 
-	const viewport = useViewport();
-
 	const [location, setLocation] = React.useState(() => [
-		viewport.width / 2,
-		viewport.height / 2,
+		worldWidth / 2,
+		worldHeight / 2,
 	]);
 
 	const { mediaStream, error: mediaError } = useMediaStream({
@@ -545,27 +547,42 @@ export default function App() {
 				))}
 			</div>
 
-			{peerTracker && <HUD onChooseLocation={handleChooseLocation}></HUD>}
-			<Avatars audioContext={audioContext}>
-				{Object.values(avatars).map((avatar) => (
-					<PeerAvatar
-						key={avatar.id}
-						peerHandler={avatar.peerHandler}
-						listenerLocation={location}
-					/>
-				))}
+			<TransformWrapper pinch={{ step: 1 }} centerOnInit minScale={0.25}>
+				<TransformComponent
+					wrapperStyle={{
+						background: "gray",
+						maxWidth: "100%",
+						maxHeight: "100%",
+					}}
+					contentClass={styles.transformContent}
+					contentStyle={{
+						width: `${worldWidth}px`,
+						height: `${worldHeight}px`,
+					}}
+				>
+					{peerTracker && <HUD onChooseLocation={handleChooseLocation}></HUD>}
+					<Avatars audioContext={audioContext}>
+						{Object.values(avatars).map((avatar) => (
+							<PeerAvatar
+								key={avatar.id}
+								peerHandler={avatar.peerHandler}
+								listenerLocation={location}
+							/>
+						))}
 
-				{peerTracker && (
-					<Avatar
-						listenerLocation={location}
-						name={localName}
-						mediaStream={mediaStream}
-						location={location}
-						muted
-						mirror
-					/>
-				)}
-			</Avatars>
+						{peerTracker && (
+							<Avatar
+								listenerLocation={location}
+								name={localName}
+								mediaStream={mediaStream}
+								location={location}
+								muted
+								mirror
+							/>
+						)}
+					</Avatars>
+				</TransformComponent>
+			</TransformWrapper>
 			{transitions(
 				(stylez, item) =>
 					item && (
