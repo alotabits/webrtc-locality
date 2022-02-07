@@ -567,14 +567,6 @@ export default function App() {
 				>
 					{peerTracker && <HUD onChooseLocation={handleChooseLocation}></HUD>}
 					<Avatars audioContext={audioContext}>
-						{Object.values(avatars).map((avatar) => (
-							<PeerAvatar
-								key={avatar.id}
-								peerHandler={avatar.peerHandler}
-								listenerLocation={location}
-							/>
-						))}
-
 						{peerTracker && (
 							<Avatar
 								listenerLocation={location}
@@ -585,6 +577,14 @@ export default function App() {
 								mirror
 							/>
 						)}
+
+						{Object.values(avatars).map((avatar) => (
+							<PeerAvatar
+								key={avatar.id}
+								peerHandler={avatar.peerHandler}
+								listenerLocation={location}
+							/>
+						))}
 					</Avatars>
 				</TransformComponent>
 			</TransformWrapper>
