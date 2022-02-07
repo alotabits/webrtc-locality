@@ -20,6 +20,10 @@ const AvatarContext = React.createContext({
 	audioContext: null,
 });
 
+const avatarRadius = 170 / 2;
+const worldWidth = 1920;
+const worldHeight = 1080;
+
 function Avatars({ audioContext, audioDestination, children }) {
 	const contextValue = React.useMemo(() => {
 		return { audioContext, audioDestination };
@@ -52,11 +56,11 @@ function Avatar({
 
 		const l = location;
 		const m = listenerLocation;
-		const d = Math.sqrt(Math.pow(m[0] - l[0], 2) + Math.pow(m[1] - l[1], 2));
-		const i = Math.min(
-			Math.max(1 - d / document.documentElement.clientWidth, 0),
-			1
-		);
+		// Find the distance between the two circumfri of the avatars
+		const d =
+			Math.sqrt(Math.pow(m[0] - l[0], 2) + Math.pow(m[1] - l[1], 2)) -
+			2 * avatarRadius;
+		const i = Math.min(Math.max(1 - d / 400, 0), 1);
 		return Math.pow(i, 2.0);
 	}, [muted, location, listenerLocation]);
 
@@ -364,9 +368,6 @@ const JoinForm = ({ style, disabled, mediaStream, onInteract, onJoin }) => {
 };
 
 const AnimatedJoinForm = animated(JoinForm);
-
-const worldWidth = 1920;
-const worldHeight = 1080;
 
 export default function App() {
 	const [log, setLog] = React.useState([]);

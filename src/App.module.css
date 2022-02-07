@@ -1,3 +1,7 @@
+:global(*) {
+	box-sizing: border-box;
+}
+
 :global(html) {
 	font-family: sans-serif;
 	--gray-1: lightgray;
