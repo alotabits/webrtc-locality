@@ -314,8 +314,7 @@ function HUD({ children, onChooseLocation }) {
 			<div
 				className={styles.hudLocator}
 				onClick={(e) =>
-					console.log("click", e.clientX) ||
-					onChooseLocation([e.clientX, e.clientY])
+					onChooseLocation([e.nativeEvent.offsetX, e.nativeEvent.offsetY])
 				}
 			/>
 			{children}
@@ -347,7 +346,7 @@ const JoinForm = ({ style, disabled, mediaStream, onJoin }) => {
 			<div className={styles.joinField}>
 				<input
 					type="text"
-					readonly
+					readOnly
 					disabled
 					value={mediaStream ? "Media ready" : "Waiting for media..."}
 				/>
@@ -548,12 +547,17 @@ export default function App() {
 				))}
 			</div>
 
-			<TransformWrapper pinch={{ step: 1 }} centerOnInit minScale={0.25}>
+			<TransformWrapper
+				pinch={{ step: 2 }}
+				centerOnInit
+				minScale={0.25}
+				disabled={!peerTracker}
+			>
 				<TransformComponent
 					wrapperStyle={{
 						background: "gray",
-						maxWidth: "100%",
-						maxHeight: "100%",
+						maxWidth: "100vw",
+						maxHeight: "100vh",
 					}}
 					contentClass={styles.transformContent}
 					contentStyle={{
