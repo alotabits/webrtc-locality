@@ -20,8 +20,10 @@ const AvatarContext = React.createContext({
 	audioContext: null,
 });
 
-function Avatars({ audioContext, children }) {
-	const contextValue = React.useMemo(() => ({ audioContext }), [audioContext]);
+function Avatars({ audioContext, audioDestination, children }) {
+	const contextValue = React.useMemo(() => {
+		return { audioContext, audioDestination };
+	}, [audioContext, audioDestination]);
 
 	return (
 		<AvatarContext.Provider value={contextValue}>
@@ -58,7 +60,7 @@ function Avatar({
 		return Math.pow(i, 2.0);
 	}, [muted, location, listenerLocation]);
 
-	const { audioContext } = React.useContext(AvatarContext);
+	const { audioContext, audioDestination } = React.useContext(AvatarContext);
 	const gainRef = React.useRef({ value: 0, setValue: () => {} });
 
 	useEffect(() => {
@@ -71,12 +73,13 @@ function Avatar({
 			return;
 		}
 
-		var gainNode = audioContext.createGain();
+		const gainNode = audioContext.createGain();
 		gainNode.gain.value = gainRef.current.value;
 		audioContext
 			.createMediaStreamSource(mediaStream)
 			.connect(gainNode)
-			.connect(audioContext.destination);
+			.connect(audioDestination);
+
 		gainRef.current.setValue = (gain) => {
 			console.log("Gain", gain);
 			gainRef.current.value = gain;
@@ -88,7 +91,7 @@ function Avatar({
 		return () => {
 			gainNode.disconnect(audioContext.destination);
 		};
-	}, [audioContext, mediaStream]);
+	}, [audioContext, audioDestination, mediaStream]);
 
 	const videoRefFunc = React.useCallback(
 		(/** @type HTMLMediaElement */ ref) => {
@@ -322,7 +325,7 @@ function HUD({ children, onChooseLocation }) {
 	);
 }
 
-const JoinForm = ({ style, disabled, mediaStream, onJoin }) => {
+const JoinForm = ({ style, disabled, mediaStream, onInteract, onJoin }) => {
 	const [name, setName] = React.useState("");
 
 	return (
@@ -352,7 +355,9 @@ const JoinForm = ({ style, disabled, mediaStream, onJoin }) => {
 				/>
 			</div>
 			<div>
-				<button disabled={disabled || !mediaStream}>Join</button>
+				<button disabled={disabled || !mediaStream} onClick={onInteract}>
+					Join
+				</button>
 			</div>
 		</form>
 	);
@@ -374,6 +379,15 @@ export default function App() {
 	const [localName, setLocalName] = React.useState(null);
 
 	const [audioContext] = React.useState(() => new AudioContext());
+	const [audioDestination, setAudioDestination] = React.useState(null);
+	const audioOutRef = React.useCallback(
+		(ref) => {
+			const dest = audioContext.createMediaStreamDestination();
+			ref.srcObject = dest.stream;
+			setAudioDestination(dest);
+		},
+		[audioContext]
+	);
 
 	const [location, setLocation] = React.useState(() => [
 		worldWidth / 2,
@@ -412,6 +426,7 @@ export default function App() {
 		(joinName, joinLocation, joinStream) => {
 			setLocalName(joinName);
 			audioContext.resume();
+			document.getElementById("audioOut")?.play();
 
 			const room = window.location.hash || secureUUID();
 			window.location.hash = room;
@@ -531,6 +546,7 @@ export default function App() {
 
 	return (
 		<>
+			<audio id="audioOut" ref={audioOutRef} />
 			<div
 				ref={logRef}
 				style={{
@@ -566,7 +582,10 @@ export default function App() {
 					}}
 				>
 					{peerTracker && <HUD onChooseLocation={handleChooseLocation}></HUD>}
-					<Avatars audioContext={audioContext}>
+					<Avatars
+						audioContext={audioContext}
+						audioDestination={audioDestination}
+					>
 						{peerTracker && (
 							<Avatar
 								listenerLocation={location}
@@ -596,6 +615,9 @@ export default function App() {
 							disabled={!!peerTracker}
 							mediaStream={mediaStream}
 							onJoin={(name) => handleJoin(name, location, mediaStream)}
+							onInteract={() => {
+								audioOutRef.current?.play();
+							}}
 						/>
 					)
 			)}
