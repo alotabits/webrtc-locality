@@ -8,6 +8,7 @@
     "@fortawesome/fontawesome-svg-core": "1.2.36",
     "@fortawesome/free-solid-svg-icons": "5.15.4",
     "@fortawesome/react-fontawesome": "0.1.16",
+    "@lukeed/uuid": "^2.0.0",
     "@types/webrtc": "0.0.31",
     "clsx": "1.1.1",
     "immer": "9.0.7",

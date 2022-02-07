@@ -1,3 +1,4 @@
+import { v4 as secureUUID } from "@lukeed/uuid/secure";
 import cx from "clsx";
 import React from "react";
 import {
@@ -413,7 +414,7 @@ export default function App() {
 			setLocalName(joinName);
 			audioContext.resume();
 
-			const room = window.location.hash || crypto.randomUUID();
+			const room = window.location.hash || secureUUID();
 			window.location.hash = room;
 
 			let announceURLs = [
