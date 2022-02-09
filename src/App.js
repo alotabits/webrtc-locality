@@ -93,6 +93,7 @@ function Avatar({
 		};
 
 		return () => {
+			// TODO: Failed to execute 'disconnect' on 'AudioNode': the given destination is not connected.
 			gainNode.disconnect(audioContext.destination);
 		};
 	}, [audioContext, audioDestination, mediaStream]);
@@ -124,6 +125,10 @@ function Avatar({
 					gainRef.current.setValue(value)
 				),
 				transform: springStyles.transform,
+				backgroundColor: springStyles.volume.to({
+					range: [0, 0.85, 1],
+					output: ["white", "white", "hsl(207,100%,60%)"],
+				}),
 			}}
 		>
 			<div className={styles.avatarInset}>
