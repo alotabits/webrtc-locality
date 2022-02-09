@@ -383,6 +383,7 @@ export default function App() {
 
 	const [peerTracker, setPeerTracker] = React.useState(null);
 	const [localName, setLocalName] = React.useState(null);
+	const [panning, setPanning] = React.useState(false);
 
 	const [audioContext] = React.useState(() => new AudioContext());
 	const [audioDestination, setAudioDestination] = React.useState(null);
@@ -514,7 +515,9 @@ export default function App() {
 	);
 
 	const handleChooseLocation = (location) => {
-		setLocation(location);
+		if (!panning) {
+			setLocation(location);
+		}
 	};
 
 	React.useEffect(() => {
@@ -574,6 +577,8 @@ export default function App() {
 				centerOnInit
 				minScale={0.25}
 				disabled={!peerTracker}
+				onPanning={() => setPanning(true)}
+				onPanningStop={() => setTimeout(() => setPanning(false), 10)}
 			>
 				<TransformComponent
 					wrapperStyle={{
