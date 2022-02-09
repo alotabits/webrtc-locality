@@ -94,7 +94,7 @@ function Avatar({
 
 		return () => {
 			// TODO: Failed to execute 'disconnect' on 'AudioNode': the given destination is not connected.
-			gainNode.disconnect(audioContext.destination);
+			gainNode.disconnect(audioDestination);
 		};
 	}, [audioContext, audioDestination, mediaStream]);
 
