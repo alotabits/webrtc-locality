@@ -249,6 +249,13 @@
 	height: 300px;
 	border-radius: 3px;
 	box-shadow: 1px 1px 8px var(--gray-1);
+	font-size: 1.2em;
+}
+
+@media (max-width: 400px) {
+	.JoinForm {
+		width: 320px;
+	}
 }
 
 .JoinForm .joinField input {
