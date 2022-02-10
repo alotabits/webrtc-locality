@@ -97,14 +97,56 @@
 }
 
 .HUD {
-	position: absolute;
+	position: fixed;
 	inset: 0;
 	box-shadow: 0 0 20px var(--gray-1) inset;
+	pointer-events: none;
 }
 
-.HUD .hudLocator {
+.HUD * {
+	pointer-events: auto;
+}
+
+.HUD:hover {
+	width: 100%;
+	height: 100%;
+}
+
+.HUD .log {
 	position: absolute;
-	inset: 0;
+	left: 10px;
+	top: 10px;
+	width: 30px;
+	height: 30px;
+	overflow: scroll;
+	border-radius: 15px;
+	font-size: 70%;
+	background: rgba(0, 0, 255, 0.2);
+	color: transparent;
+}
+
+.HUD button {
+	position: absolute;
+	left: 10px;
+	top: 10px;
+	width: 30px;
+	height: 30px;
+	border-radius: 50%;
+	border: solid var(--gray-2) 1px;
+}
+
+.HUD .log::-webkit-scrollbar {
+	display: none;
+}
+
+.HUD .logOpen {
+	text-shadow: 1px 1px 1px white;
+	right: 10px;
+	bottom: 10px;
+	width: auto;
+	height: auto;
+	padding: 30px;
+	color: black;
 }
 
 .CallButton {

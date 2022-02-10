@@ -320,18 +320,8 @@ class PeerHandler {
 	}
 }
 
-function HUD({ children, onChooseLocation }) {
-	return (
-		<div className={styles.HUD}>
-			<div
-				className={styles.hudLocator}
-				onClick={(e) =>
-					onChooseLocation([e.nativeEvent.offsetX, e.nativeEvent.offsetY])
-				}
-			/>
-			{children}
-		</div>
-	);
+function HUD({ children }) {
+	return <div className={styles.HUD}>{children}</div>;
 }
 
 const JoinForm = ({ style, disabled, mediaStream, onInteract, onJoin }) => {
@@ -549,6 +539,8 @@ export default function App() {
 		}
 	}, [log]);
 
+	const [logOpen, setLogOpen] = React.useState(false);
+
 	if (mediaError) {
 		return (
 			<div>
@@ -562,22 +554,6 @@ export default function App() {
 	return (
 		<>
 			<audio id="audioOut" ref={audioOutRef} />
-			<div
-				ref={logRef}
-				style={{
-					position: "absolute",
-					inset: 0,
-					overflow: "scroll",
-					paddingLeft: "1em",
-					fontSize: "50%",
-				}}
-			>
-				Log:
-				{log.map((entry, i) => (
-					<div key={i}>{entry}</div>
-				))}
-			</div>
-
 			<TransformWrapper
 				pinch={{ step: 2 }}
 				centerOnInit
@@ -598,7 +574,15 @@ export default function App() {
 						height: `${worldHeight}px`,
 					}}
 				>
-					{peerTracker && <HUD onChooseLocation={handleChooseLocation}></HUD>}
+					<div
+						style={{ position: "absolute", inset: 0 }}
+						onClick={(e) =>
+							handleChooseLocation([
+								e.nativeEvent.offsetX,
+								e.nativeEvent.offsetY,
+							])
+						}
+					/>
 					<Avatars
 						audioContext={audioContext}
 						audioDestination={audioDestination}
@@ -624,6 +608,15 @@ export default function App() {
 					</Avatars>
 				</TransformComponent>
 			</TransformWrapper>
+			<HUD>
+				<div ref={logRef} className={cx(styles.log, logOpen && styles.logOpen)}>
+					Log:
+					{log.map((entry, i) => (
+						<div key={i}>{entry}</div>
+					))}
+				</div>
+				<button onClick={() => setLogOpen((v) => !v)}></button>
+			</HUD>
 			{transitions(
 				(stylez, item) =>
 					item && (
