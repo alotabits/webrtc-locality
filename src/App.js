@@ -385,15 +385,21 @@ export default function App() {
 	const [localName, setLocalName] = React.useState(null);
 	const [panning, setPanning] = React.useState(false);
 
-	const [audioContext] = React.useState(() => new AudioContext());
-	const [audioDestination, setAudioDestination] = React.useState(null);
+	const [{ audioContext, audioDestination }] = React.useState(() => {
+		const context = new AudioContext();
+		const destination = context.createMediaStreamDestination();
+
+		return {
+			audioContext: context,
+			audioDestination: destination,
+		};
+	});
+
 	const audioOutRef = React.useCallback(
 		(ref) => {
-			const dest = audioContext.createMediaStreamDestination();
-			ref.srcObject = dest.stream;
-			setAudioDestination(dest);
+			ref.srcObject = audioDestination.stream;
 		},
-		[audioContext]
+		[audioDestination]
 	);
 
 	const [location, setLocation] = React.useState(() => [
