@@ -85,7 +85,6 @@ function Avatar({
 			.connect(audioDestination);
 
 		gainRef.current.setValue = (gain) => {
-			console.log("Gain", gain);
 			gainRef.current.value = gain;
 			gainNode.gain.value = gain;
 			// For the spring style, not that it matters much.
@@ -198,7 +197,6 @@ class PeerHandler {
 		localName,
 		localLocation,
 		localMediaStream,
-		log,
 		sendSignal,
 	}) {
 		this.id = id;
@@ -206,7 +204,6 @@ class PeerHandler {
 		this.localName = localName;
 		this.localLocation = localLocation;
 		this.localMediaStream = localMediaStream;
-		this.log = log;
 		this.sendSignal = sendSignal;
 
 		this._resetPeerState();
@@ -222,7 +219,7 @@ class PeerHandler {
 
 	connect({ onConnect, onDisconnect, onName, onLocation, onStream }) {
 		const { id, localMediaStream } = this;
-		this.log(`_createPeer ${id}:`);
+		console.log(`_createPeer ${id}:`);
 
 		const peer = new Peer({
 			initiator: this.initiator,
@@ -233,14 +230,14 @@ class PeerHandler {
 		peer.on("signal", (signal) => {
 			const { id, sendSignal } = this;
 
-			this.log(`signal ${id}`);
+			console.log(`signal ${id}`);
 			console.log(signal);
 
 			sendSignal(signal);
 		});
 
 		peer.on("connect", () => {
-			this.log("peer connect");
+			console.log("peer connect");
 			this.connected = true;
 			onConnect();
 			peer.send(JSON.stringify({ type: "name", name: this.localName }));
@@ -250,13 +247,13 @@ class PeerHandler {
 		});
 
 		peer.on("stream", (stream) => {
-			this.log("peer stream");
+			console.log("peer stream");
 			this.stream = stream;
 			onStream(stream);
 		});
 
 		peer.on("track", (track) => {
-			this.log("peer track");
+			console.log("peer track");
 		});
 
 		peer.on("data", (payload) => {
@@ -278,9 +275,9 @@ class PeerHandler {
 			const { id } = this;
 
 			if (error) {
-				this.log(`destroyPeer ${id}: error ${error}`);
+				console.log(`destroyPeer ${id}: error ${error}`);
 			} else {
-				this.log(`destroyPeer ${id}:`);
+				console.log(`destroyPeer ${id}:`);
 			}
 
 			this._resetPeerState();
@@ -300,7 +297,7 @@ class PeerHandler {
 	receiveSignal(signal) {
 		const { id, initiator, peer } = this;
 
-		this.log(`signal : ${id}, ${initiator}`);
+		console.log(`signal : ${id}, ${initiator}`);
 		console.log(signal);
 
 		peer.signal(signal);
@@ -364,12 +361,19 @@ const JoinForm = ({ style, disabled, mediaStream, onInteract, onJoin }) => {
 
 const AnimatedJoinForm = animated(JoinForm);
 
-export default function App() {
-	const [log, setLog] = React.useState([]);
-	const logit = React.useCallback((entry) => {
-		console.log(entry);
-		setLog((l) => [...l, JSON.stringify(entry, undefined, 2)]);
-	}, []);
+export default function App({ getLogQueue }) {
+	const consoleLogRef = React.useRef([]);
+	useEffect(() => {
+		const consoleLog = (...args) =>
+			consoleLogRef.current.push(
+				args
+					.map((arg) =>
+						typeof arg !== "string" ? JSON.stringify(arg, undefined, 2) : arg
+					)
+					.join(" ")
+			);
+		getLogQueue(consoleLog).forEach(consoleLog);
+	}, [getLogQueue]);
 
 	const [peerTracker, setPeerTracker] = React.useState(null);
 	const [localName, setLocalName] = React.useState(null);
@@ -448,7 +452,7 @@ export default function App() {
 
 			p2pt.on("peerconnect", (signalingPeer) => {
 				const { id } = signalingPeer;
-				logit(`peerconnect from ${id}`);
+				console.log(`peerconnect from ${id}`);
 
 				const peerHandler = new PeerHandler({
 					id,
@@ -456,7 +460,6 @@ export default function App() {
 					localName: joinName,
 					localLocation: joinLocation,
 					localMediaStream: joinStream,
-					log: logit,
 					sendSignal: (signal) => {
 						p2pt.send(signalingPeer, { type: "signal", signal });
 					},
@@ -471,7 +474,7 @@ export default function App() {
 			p2pt.on("msg", ({ id }, msg) => {
 				const peerHandler = peerHandlers.get(id);
 				if (!peerHandler) {
-					logit(
+					console.log(
 						`peerHandler missing for id ${id} on msg with type ${msg.type}`
 					);
 					console.log(msg);
@@ -492,10 +495,10 @@ export default function App() {
 			});
 
 			p2pt.on("peerclose", ({ id }) => {
-				logit(`peerclose from ${id}`);
+				console.log(`peerclose from ${id}`);
 
 				if (!peerHandlers.has(id)) {
-					logit(`peerHandler missing for peerclose on ${id}`);
+					console.log(`peerHandler missing for peerclose on ${id}`);
 				}
 
 				peerHandlers.delete(id);
@@ -507,7 +510,7 @@ export default function App() {
 
 			setPeerTracker(p2pt);
 		},
-		[audioContext, handleCreateAvatar, handleDestroyAvatar, logit]
+		[audioContext, handleCreateAvatar, handleDestroyAvatar]
 	);
 
 	const handleChooseLocation = (location) => {
@@ -531,15 +534,15 @@ export default function App() {
 		},
 	});
 
+	const [logOpen, setLogOpen] = React.useState(false);
+
 	const logRef = React.useRef(null);
 	React.useEffect(() => {
 		const el = logRef.current;
 		if (el) {
 			el.scrollTop = el.scrollHeight;
 		}
-	}, [log]);
-
-	const [logOpen, setLogOpen] = React.useState(false);
+	}, [logOpen]);
 
 	if (mediaError) {
 		return (
@@ -611,8 +614,13 @@ export default function App() {
 			<HUD>
 				<div ref={logRef} className={cx(styles.log, logOpen && styles.logOpen)}>
 					Log:
-					{log.map((entry, i) => (
-						<div key={i}>{entry}</div>
+					{consoleLogRef.current.map((entry, i) => (
+						<div style={{ display: "flex", flexFlow: "row nowrap" }}>
+							<div style={{ fontSize: "0.8em" }}>►&nbsp;</div>
+							<pre style={{ margin: 0 }} key={i}>
+								{entry}
+							</pre>
+						</div>
 					))}
 				</div>
 				<button onClick={() => setLogOpen((v) => !v)}></button>
