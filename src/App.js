@@ -391,7 +391,9 @@ export default function App({ getLogQueue }) {
 
 	const audioOutRef = React.useCallback(
 		(ref) => {
-			ref.srcObject = audioDestination.stream;
+			if (ref) {
+				ref.srcObject = audioDestination.stream;
+			}
 		},
 		[audioDestination]
 	);
@@ -402,7 +404,7 @@ export default function App({ getLogQueue }) {
 	]);
 
 	const { mediaStream, error: mediaError } = useMediaStream({
-		video: true,
+		video: false,
 		audio: true,
 	});
 
