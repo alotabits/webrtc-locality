@@ -268,8 +268,8 @@ export default function App({ getLogQueue }) {
 
 	const handleJoin = React.useCallback(
 		(joinName, joinMediaStream) => {
-			// const room = window.location.hash || secureUUID();
-			// window.location.hash = room;
+			audioContext.resume();
+			document.getElementById("audioOut")?.play();
 
 			setAvatarState(peerManager.dispatch(actions.setName(joinName)));
 			setAvatarState(
