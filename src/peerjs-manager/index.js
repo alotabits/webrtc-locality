@@ -21,6 +21,11 @@ export const actions = {
 		type: "sync",
 		sync,
 	}),
+
+	discover: (discover) => ({
+		type: "discover",
+		discover,
+	}),
 };
 
 const peerReducerInit = {
@@ -73,12 +78,17 @@ export class PeerJSHandler {
 		}
 	};
 
-	setDataConnection = (dataConn) => {
+	setDataConnection = (dataConn, onDiscover) => {
 		this.dataConn = dataConn;
 		dataConn.on("open", () => {
 			console.log("PeerJSHandler: peer data connection open event");
 
 			dataConn.on("data", (data) => {
+				if (data.type === "discover") {
+					console.log(data);
+					onDiscover(data.discover);
+					return;
+				}
 				console.log("PeerJSHandler: peer data connection data event");
 				this.peerState = peerReducer(this.peerState, data);
 				this.onPeerState?.(this.peerState);
@@ -115,6 +125,12 @@ export class PeerJSManager {
 		return peerHandler;
 	};
 
+	_discover = (peers) => {
+		peers.forEach((peer) => {
+			this.connect(peer.id);
+		});
+	};
+
 	dispatch = (action) => {
 		this.localState = peerReducer(this.localState, action);
 		if (action.type !== "mediaStream") {
@@ -147,11 +163,18 @@ export class PeerJSManager {
 			console.log("PeerJSManager: received peer data connection");
 
 			const peerHandler = this._getPeer(dataConn.peer);
-			peerHandler.setDataConnection(dataConn);
+			peerHandler.setDataConnection(dataConn, this._discover);
 
 			dataConn.on("open", () => {
 				const { mediaStream: discard, ...sync } = this.localState;
 				dataConn.send(actions.sync(sync));
+				dataConn.send(
+					actions.discover(
+						Array.from(this.peerHandlers, ([name, value]) => ({
+							id: value.remoteId,
+						}))
+					)
+				);
 				this.onPeerConnect?.(dataConn.peer, peerHandler);
 			});
 
@@ -199,6 +222,11 @@ export class PeerJSManager {
 	};
 
 	connect = (remoteId) => {
+		if (this.peerHandlers.has(remoteId)) {
+			console.log(`PeerJSManager: already connected to ${remoteId}`);
+			return;
+		}
+
 		console.log(`PeerJSManager: connecting to ${remoteId}`);
 		const peerHandler = this._getPeer(remoteId);
 
@@ -219,7 +247,7 @@ export class PeerJSManager {
 
 		const mediaConn = this.peer.call(remoteId, this.localState.mediaStream);
 
-		peerHandler.setDataConnection(dataConn);
+		peerHandler.setDataConnection(dataConn, this._discover);
 		peerHandler.setMediaConnection(mediaConn);
 	};
 }
