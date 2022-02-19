@@ -222,6 +222,11 @@ export class PeerJSManager {
 	};
 
 	connect = (remoteId) => {
+		if (remoteId === this.id) {
+			console.log(`PeerJSManager: skipping connect to self at ${remoteId}`);
+			return;
+		}
+
 		if (this.peerHandlers.has(remoteId)) {
 			console.log(`PeerJSManager: already connected to ${remoteId}`);
 			return;
