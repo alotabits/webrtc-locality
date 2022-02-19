@@ -1,4 +1,3 @@
-import { v4 as secureUUID } from "@lukeed/uuid/secure";
 import cx from "clsx";
 import React from "react";
 import {
@@ -12,9 +11,7 @@ import { useEffect } from "react/cjs/react.development";
 import { useImmer } from "use-immer";
 import styles from "./App.module.css";
 import { useMediaStream } from "./hooks";
-
-const Peer = window.SimplePeer;
-const P2PT = window.P2PT;
+import { actions, PeerJSManager } from "./peerjs-manager";
 
 const AvatarContext = React.createContext({
 	audioContext: null,
@@ -146,183 +143,36 @@ function Avatar({
 	);
 }
 
-function PeerAvatar({ peerHandler, listenerLocation }) {
-	const [connected, setConnected] = React.useState(false);
-	const [name, setName] = React.useState("");
-	const [mediaStream, setMediaStream] = React.useState(null);
-	const [location, setLocation] = React.useState(() => {
-		// Randomly outside grid?
-		return [
-			Math.random() * document.documentElement.clientWidth,
-			Math.random() * document.documentElement.clientHeight,
-		];
-	});
+function PeerAvatar({ peerHandler, ...props }) {
+	const [peerState, setPeerState] = React.useState(null);
 
 	React.useEffect(() => {
-		peerHandler.connect({
-			onConnect: () => {
-				setConnected(true);
-			},
-			onDisconnect: () => {
-				setConnected(false);
-			},
-			onName: setName,
-			onStream: setMediaStream,
-			onLocation: setLocation,
+		peerHandler?.attach({
+			onPeerState: setPeerState,
 		});
 
 		return () => {
-			peerHandler.disconnect();
+			peerHandler?.detach();
 		};
 	}, [peerHandler]);
 
-	if (!connected) {
+	if (!peerState) {
 		return null;
 	}
 
-	return (
-		<Avatar
-			listenerLocation={listenerLocation}
-			name={name}
-			mediaStream={mediaStream}
-			location={location}
-		/>
-	);
-}
-
-class PeerHandler {
-	constructor({
-		id,
-		initiator,
-		localName,
-		localLocation,
-		localMediaStream,
-		sendSignal,
-	}) {
-		this.id = id;
-		this.initiator = initiator;
-		this.localName = localName;
-		this.localLocation = localLocation;
-		this.localMediaStream = localMediaStream;
-		this.sendSignal = sendSignal;
-
-		this._resetPeerState();
-	}
-
-	_resetPeerState() {
-		this.peer = null;
-		this.connected = false;
-		this.name = null;
-		this.stream = null;
-		this.location = null;
-	}
-
-	connect({ onConnect, onDisconnect, onName, onLocation, onStream }) {
-		const { id, localMediaStream } = this;
-		console.log(`_createPeer ${id}:`);
-
-		const peer = new Peer({
-			initiator: this.initiator,
-			trickle: true,
-			stream: localMediaStream,
-		});
-
-		peer.on("signal", (signal) => {
-			const { id, sendSignal } = this;
-
-			console.log(`signal ${id}`);
-			console.log(signal);
-
-			sendSignal(signal);
-		});
-
-		peer.on("connect", () => {
-			console.log("peer connect");
-			this.connected = true;
-			onConnect();
-			peer.send(JSON.stringify({ type: "name", name: this.localName }));
-			peer.send(
-				JSON.stringify({ type: "location", location: this.localLocation })
-			);
-		});
-
-		peer.on("stream", (stream) => {
-			console.log("peer stream");
-			this.stream = stream;
-			onStream(stream);
-		});
-
-		peer.on("track", (track) => {
-			console.log("peer track");
-		});
-
-		peer.on("data", (payload) => {
-			const data = JSON.parse(payload);
-			switch (data.type) {
-				case "location":
-					this.location = data.location;
-					onLocation(data.location);
-					break;
-				case "name":
-					this.name = data.name;
-					onName(data.name);
-					break;
-				default:
-			}
-		});
-
-		const destroyPeer = (error) => {
-			const { id } = this;
-
-			if (error) {
-				console.log(`destroyPeer ${id}: error ${error}`);
-			} else {
-				console.log(`destroyPeer ${id}:`);
-			}
-
-			this._resetPeerState();
-			onDisconnect();
-		};
-
-		peer.on("error", destroyPeer);
-		peer.on("close", destroyPeer);
-
-		this.peer = peer;
-	}
-
-	disconnect() {
-		this._resetPeerState();
-	}
-
-	receiveSignal(signal) {
-		const { id, initiator, peer } = this;
-
-		console.log(`signal : ${id}, ${initiator}`);
-		console.log(signal);
-
-		peer.signal(signal);
-	}
-
-	sendLocation(location) {
-		const { peer, connected } = this;
-		this.localLocation = location;
-		if (connected) {
-			peer.send(
-				JSON.stringify({
-					type: "location",
-					location,
-				})
-			);
-		}
-	}
+	return <Avatar {...peerState} {...props} />;
 }
 
 function HUD({ children }) {
 	return <div className={styles.HUD}>{children}</div>;
 }
 
-const JoinForm = ({ style, disabled, mediaStream, onInteract, onJoin }) => {
+const JoinForm = ({ style, disabled, onInteract, onJoin }) => {
 	const [name, setName] = React.useState("");
+	const { mediaStream, error: mediaError } = useMediaStream({
+		video: true,
+		audio: true,
+	});
 
 	return (
 		<form
@@ -330,7 +180,7 @@ const JoinForm = ({ style, disabled, mediaStream, onInteract, onJoin }) => {
 			style={style}
 			onSubmit={(e) => {
 				e.preventDefault();
-				onJoin(name);
+				onJoin(name, mediaStream);
 			}}
 		>
 			<div className={styles.joinField}>
@@ -347,11 +197,20 @@ const JoinForm = ({ style, disabled, mediaStream, onInteract, onJoin }) => {
 					type="text"
 					readOnly
 					disabled
-					value={mediaStream ? "Media ready" : "Waiting for media..."}
+					value={
+						mediaError
+							? mediaError.toString()
+							: mediaStream
+							? "Media ready"
+							: "Waiting for media..."
+					}
 				/>
 			</div>
 			<div>
-				<button disabled={disabled || !mediaStream} onClick={onInteract}>
+				<button
+					disabled={disabled || !!mediaError || !mediaStream}
+					onClick={onInteract}
+				>
 					Join
 				</button>
 			</div>
@@ -363,6 +222,7 @@ const AnimatedJoinForm = animated(JoinForm);
 
 export default function App({ getLogQueue }) {
 	const consoleLogRef = React.useRef([]);
+
 	useEffect(() => {
 		const consoleLog = (...args) =>
 			consoleLogRef.current.push(
@@ -375,8 +235,6 @@ export default function App({ getLogQueue }) {
 		getLogQueue(consoleLog).forEach(consoleLog);
 	}, [getLogQueue]);
 
-	const [peerTracker, setPeerTracker] = React.useState(null);
-	const [localName, setLocalName] = React.useState(null);
 	const [panning, setPanning] = React.useState(false);
 
 	const [{ audioContext, audioDestination }] = React.useState(() => {
@@ -398,136 +256,61 @@ export default function App({ getLogQueue }) {
 		[audioDestination]
 	);
 
-	const [location, setLocation] = React.useState(() => [
-		worldWidth / 2,
-		worldHeight / 2,
-	]);
-
-	const { mediaStream, error: mediaError } = useMediaStream({
-		video: false,
-		audio: true,
-	});
-
 	const [avatars, updateAvatars] = useImmer({});
-
-	const handleCreateAvatar = React.useCallback(
-		(id, peerHandler) => {
-			updateAvatars((draftAvatars) => {
-				draftAvatars[id] = {
-					id,
-					peerHandler,
-				};
-			});
-		},
-		[updateAvatars]
-	);
-
-	const handleDestroyAvatar = React.useCallback(
-		(id) => {
-			updateAvatars((draftAvatars) => {
-				delete draftAvatars[id];
-			});
-		},
-		[updateAvatars]
+	const [peerManager] = React.useState(() => {
+		const m = new PeerJSManager();
+		window.m = m;
+		return m;
+	});
+	const [avatarState, setAvatarState] = React.useState(() =>
+		peerManager.getLocalState()
 	);
 
 	const handleJoin = React.useCallback(
-		(joinName, joinLocation, joinStream) => {
-			setLocalName(joinName);
-			audioContext.resume();
-			document.getElementById("audioOut")?.play();
+		(joinName, joinMediaStream) => {
+			// const room = window.location.hash || secureUUID();
+			// window.location.hash = room;
 
-			const room = window.location.hash || secureUUID();
-			window.location.hash = room;
+			setAvatarState(peerManager.dispatch(actions.setName(joinName)));
+			setAvatarState(
+				peerManager.dispatch(actions.setMediaStream(joinMediaStream))
+			);
 
-			let announceURLs = [
-				"wss://tracker.openwebtorrent.com",
-				// Connections fail:
-				// "wss://tracker.sloppyta.co:443/announce",
-				// "wss://tracker.novage.com.ua:443/announce",
-				// "wss://tracker.btorrent.xyz:443/announce"
-			];
-
-			const p2pt = new P2PT(announceURLs, "webrtc-locality-" + room);
-			const peerHandlers = new Map();
-			const signalQueues = new Map();
-
-			p2pt.on("peerconnect", (signalingPeer) => {
-				const { id } = signalingPeer;
-				console.log(`peerconnect from ${id}`);
-
-				const peerHandler = new PeerHandler({
-					id,
-					initiator: signalingPeer.initiator,
-					localName: joinName,
-					localLocation: joinLocation,
-					localMediaStream: joinStream,
-					sendSignal: (signal) => {
-						p2pt.send(signalingPeer, { type: "signal", signal });
-					},
+			const handlePeerConnect = (id, peerHandler) => {
+				console.log(`handlePeerConnect: ${id}`);
+				updateAvatars((draftAvatars) => {
+					draftAvatars[id] = { id, peerHandler };
 				});
-				signalQueues.get(id)?.forEach(peerHandler.signal);
-				signalQueues.delete(id);
-				peerHandlers.set(id, peerHandler);
+			};
 
-				handleCreateAvatar(id, peerHandler);
-			});
+			const handlePeerDisconnect = (id) => {
+				console.log(`handlePeerDisconnect: ${id}`);
+				updateAvatars((draftAvatars) => {
+					delete draftAvatars[id];
+				});
+			};
 
-			p2pt.on("msg", ({ id }, msg) => {
-				const peerHandler = peerHandlers.get(id);
-				if (!peerHandler) {
-					console.log(
-						`peerHandler missing for id ${id} on msg with type ${msg.type}`
-					);
-					console.log(msg);
-					let signalQueue = signalQueues.get(id);
-					if (!signalQueue) {
-						signalQueue = [];
-						signalQueues.set(id, signalQueue);
+			peerManager.start({
+				onOpen: (id) => {
+					if (window.location.hash) {
+						peerManager.connect(window.location.hash.slice(1));
 					}
-
-					if (msg.type === "signal") {
-						signalQueue.push(msg.signal);
-					}
-				}
-
-				if (msg.type === "signal") {
-					peerHandler.receiveSignal(msg.signal);
-				}
+					window.location.hash = id;
+				},
+				onPeerConnect: handlePeerConnect,
+				onPeerDisconnect: handlePeerDisconnect,
 			});
-
-			p2pt.on("peerclose", ({ id }) => {
-				console.log(`peerclose from ${id}`);
-
-				if (!peerHandlers.has(id)) {
-					console.log(`peerHandler missing for peerclose on ${id}`);
-				}
-
-				peerHandlers.delete(id);
-				signalQueues.delete(id);
-				handleDestroyAvatar(id);
-			});
-
-			p2pt.start();
-
-			setPeerTracker(p2pt);
 		},
-		[audioContext, handleCreateAvatar, handleDestroyAvatar]
+		[peerManager, updateAvatars]
 	);
 
 	const handleChooseLocation = (location) => {
 		if (!panning) {
-			setLocation(location);
+			setAvatarState(peerManager.dispatch(actions.setLocation(location)));
 		}
 	};
 
-	React.useEffect(() => {
-		Object.values(avatars).forEach((avatar) => {
-			avatar.peerHandler.sendLocation(location);
-		});
-	}, [avatars, location]);
-
-	const transitions = useTransition(!peerTracker, {
+	const transitions = useTransition(!avatarState.mediaStream, {
 		enter: {
 			opacity: 1,
 		},
@@ -546,16 +329,6 @@ export default function App({ getLogQueue }) {
 		}
 	}, [logOpen]);
 
-	if (mediaError) {
-		return (
-			<div>
-				Media Permissions
-				<br />
-				{mediaError.toString()}
-			</div>
-		);
-	}
-
 	return (
 		<>
 			<audio id="audioOut" ref={audioOutRef} />
@@ -563,7 +336,7 @@ export default function App({ getLogQueue }) {
 				pinch={{ step: 2 }}
 				centerOnInit
 				minScale={0.25}
-				disabled={!peerTracker}
+				disabled={!peerManager}
 				onPanning={() => setPanning(true)}
 				onPanningStop={() => setTimeout(() => setPanning(false), 10)}
 			>
@@ -592,12 +365,10 @@ export default function App({ getLogQueue }) {
 						audioContext={audioContext}
 						audioDestination={audioDestination}
 					>
-						{peerTracker && (
+						{avatarState.mediaStream && (
 							<Avatar
-								listenerLocation={location}
-								name={localName}
-								mediaStream={mediaStream}
-								location={location}
+								{...avatarState}
+								listenerLocation={avatarState.location}
 								muted
 								mirror
 							/>
@@ -607,7 +378,7 @@ export default function App({ getLogQueue }) {
 							<PeerAvatar
 								key={avatar.id}
 								peerHandler={avatar.peerHandler}
-								listenerLocation={location}
+								listenerLocation={avatarState.location}
 							/>
 						))}
 					</Avatars>
@@ -617,11 +388,9 @@ export default function App({ getLogQueue }) {
 				<div ref={logRef} className={cx(styles.log, logOpen && styles.logOpen)}>
 					Log:
 					{consoleLogRef.current.map((entry, i) => (
-						<div style={{ display: "flex", flexFlow: "row nowrap" }}>
+						<div key={i} style={{ display: "flex", flexFlow: "row nowrap" }}>
 							<div style={{ fontSize: "0.8em" }}>►&nbsp;</div>
-							<pre style={{ margin: 0 }} key={i}>
-								{entry}
-							</pre>
+							<pre style={{ margin: 0 }}>{entry}</pre>
 						</div>
 					))}
 				</div>
@@ -632,10 +401,9 @@ export default function App({ getLogQueue }) {
 					item && (
 						<AnimatedJoinForm
 							style={{ opacity: stylez.opacity }}
-							disabled={!!peerTracker}
-							mediaStream={mediaStream}
-							onJoin={(name) => handleJoin(name, location, mediaStream)}
+							onJoin={(name, mediaStream) => handleJoin(name, mediaStream)}
 							onInteract={() => {
+								audioContext.resume();
 								audioOutRef.current?.play();
 							}}
 						/>
