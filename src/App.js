@@ -403,10 +403,8 @@ export default function App({ getLogQueue }) {
 							style={{ opacity: stylez.opacity }}
 							onJoin={(name, mediaStream) => handleJoin(name, mediaStream)}
 							onInteract={() => {
-								/*
 								audioContext.resume();
 								audioOutRef.current?.play();
-								*/
 							}}
 						/>
 					)
