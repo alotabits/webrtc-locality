@@ -4,7 +4,7 @@ import ReactDOM from "react-dom";
 import { getLogQueue } from "./@log";
 import App from "./App";
 
-const query = new URLSearchParams(document.location.hash);
+const query = new URLSearchParams(document.location.search);
 const rootElement = document.getElementById("root");
 
 ReactDOM.render(

@@ -289,7 +289,7 @@
 	animation-timing-function: linear;
 }
 
-.JoinForm {
+.StartForm {
 	display: flex;
 	flex-flow: column nowrap;
 	justify-content: center;
@@ -308,12 +308,12 @@
 }
 
 @media (max-width: 400px) {
-	.JoinForm {
+	.StartForm {
 		width: 320px;
 	}
 }
 
-.JoinForm .joinField input {
+.StartForm .startField input {
 	appearance: none;
 	border: none;
 	border-radius: 3px;
@@ -321,7 +321,7 @@
 	padding: var(--padding-1);
 }
 
-.JoinForm button {
+.StartForm button {
 	appearance: none;
 	border: none;
 	background: white;
@@ -332,6 +332,6 @@
 	border-radius: 3px;
 }
 
-.JoinForm button:disabled {
+.StartForm button:disabled {
 	opacity: 0.5;
 }

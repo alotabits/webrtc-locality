@@ -196,7 +196,7 @@ const Region = ({ anchor, children }) => {
 	return <div className={cx(styles.Region, anchorClass)}>{children}</div>;
 };
 
-const JoinForm = ({ style, disabled, version, onJoin }) => {
+const StartForm = ({ style, join, version, onStart }) => {
 	const [name, setName] = React.useState("");
 	const { mediaStream, error: mediaError } = useMediaStream({
 		video: true,
@@ -205,26 +205,25 @@ const JoinForm = ({ style, disabled, version, onJoin }) => {
 
 	return (
 		<form
-			className={styles.JoinForm}
+			className={styles.StartForm}
 			style={style}
 			onSubmit={(e) => {
 				e.preventDefault();
-				onJoin(name, mediaStream);
+				onStart(name, mediaStream);
 			}}
 		>
 			<div className={styles.title}>
 				Archipelago<sup> {version}</sup>
 			</div>
-			<div className={styles.joinField}>
+			<div className={styles.startField}>
 				<input
 					placeholder="Name"
 					type="text"
-					disabled={disabled}
 					value={name}
 					onChange={(e) => setName(e.target.value)}
 				/>
 			</div>
-			<div className={styles.joinField}>
+			<div className={styles.startField}>
 				<input
 					type="text"
 					readOnly
@@ -239,18 +238,15 @@ const JoinForm = ({ style, disabled, version, onJoin }) => {
 				/>
 			</div>
 			<div>
-				<button
-					disabled={disabled || !!mediaError || !mediaStream}
-					// onClick={onInteract}
-				>
-					Join
+				<button disabled={!!mediaError || !mediaStream}>
+					{join ? "Join" : "Create"}
 				</button>
 			</div>
 		</form>
 	);
 };
 
-const AnimatedJoinForm = animated(JoinForm);
+const AnimatedStartForm = animated(StartForm);
 
 export default function App({ getLogQueue, query, version }) {
 	const consoleLogRef = React.useRef([]);
@@ -302,12 +298,12 @@ export default function App({ getLogQueue, query, version }) {
 		peerManager.getLocalState()
 	);
 
-	const handleJoin = React.useCallback(
-		(joinName, joinMediaStream, joinId) => {
+	const handleStart = React.useCallback(
+		(startName, startMediaStream, joinId) => {
 			avatarAudio.audioPlay();
-			setAvatarState(peerManager.dispatch(actions.setName(joinName)));
+			setAvatarState(peerManager.dispatch(actions.setName(startName)));
 			setAvatarState(
-				peerManager.dispatch(actions.setMediaStream(joinMediaStream))
+				peerManager.dispatch(actions.setMediaStream(startMediaStream))
 			);
 
 			const handlePeerConnect = (id, peerHandler) => {
@@ -449,11 +445,12 @@ export default function App({ getLogQueue, query, version }) {
 			{transitions(
 				(stylez, item) =>
 					item && (
-						<AnimatedJoinForm
+						<AnimatedStartForm
+							join={!!query.get("join")}
 							style={{ opacity: stylez.opacity }}
 							version={version}
-							onJoin={(name, mediaStream) =>
-								handleJoin(name, mediaStream, query.get("join"))
+							onStart={(name, mediaStream) =>
+								handleStart(name, mediaStream, query.get("join"))
 							}
 						/>
 					)
