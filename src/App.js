@@ -209,7 +209,7 @@ const JoinForm = ({ style, disabled, onInteract, onJoin }) => {
 			<div>
 				<button
 					disabled={disabled || !!mediaError || !mediaStream}
-					onClick={onInteract}
+					// onClick={onInteract}
 				>
 					Join
 				</button>
@@ -270,6 +270,7 @@ export default function App({ getLogQueue }) {
 
 	const handleJoin = React.useCallback(
 		(joinName, joinMediaStream) => {
+			avatarAudio.audioPlay();
 			setAvatarState(peerManager.dispatch(actions.setName(joinName)));
 			setAvatarState(
 				peerManager.dispatch(actions.setMediaStream(joinMediaStream))
@@ -300,7 +301,7 @@ export default function App({ getLogQueue }) {
 				onPeerDisconnect: handlePeerDisconnect,
 			});
 		},
-		[peerManager, updateAvatars]
+		[peerManager, avatarAudio, updateAvatars]
 	);
 
 	const handleChooseLocation = (location) => {
@@ -400,7 +401,6 @@ export default function App({ getLogQueue }) {
 						<AnimatedJoinForm
 							style={{ opacity: stylez.opacity }}
 							onJoin={(name, mediaStream) => handleJoin(name, mediaStream)}
-							onInteract={avatarAudio.audioPlay}
 						/>
 					)
 			)}
