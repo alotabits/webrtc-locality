@@ -111,8 +111,8 @@ export class PeerJSHandler {
 
 // Handles signaling through PeerJS without peer discovery.
 export class PeerJSManager {
-	constructor() {
-		this.localState = peerReducerInit;
+	constructor({ location }) {
+		this.localState = { ...peerReducerInit, location };
 		this.peerHandlers = new Map();
 	}
 

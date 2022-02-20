@@ -260,7 +260,9 @@ export default function App({ getLogQueue }) {
 	});
 	const [avatars, updateAvatars] = useImmer({});
 	const [peerManager] = React.useState(() => {
-		const m = new PeerJSManager();
+		const m = new PeerJSManager({
+			location: [worldWidth / 2, worldHeight / 2],
+		});
 		window.m = m;
 		return m;
 	});
