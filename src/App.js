@@ -248,9 +248,9 @@ export default function App({ getLogQueue }) {
 			audioContext: context,
 			audioDestination: destination,
 			audioPlay: () => {
+				context.resume();
 				element.srcObject = destination.stream;
 				element.play();
-				context.resume();
 			},
 		};
 	});
