@@ -202,6 +202,10 @@ const StartForm = ({ style, join, version, onStart }) => {
 		video: true,
 		audio: true,
 	});
+	const videoRef = React.useRef();
+	useEffect(() => {
+		videoRef.current.srcObject = mediaStream;
+	}, [mediaStream]);
 
 	return (
 		<form
@@ -214,6 +218,21 @@ const StartForm = ({ style, join, version, onStart }) => {
 		>
 			<div className={styles.title}>
 				Archipelago<sup> {version}</sup>
+			</div>
+			<div
+				style={{
+					borderRadius: "50%",
+					padding: "10px",
+					background: "hsl(207,100%,60%)",
+					marginBottom: "10px",
+				}}
+			>
+				<video
+					style={{ display: "block", background: "white" }}
+					ref={videoRef}
+					muted
+					autoPlay
+				/>
 			</div>
 			<div className={styles.startField}>
 				<input

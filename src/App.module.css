@@ -301,7 +301,7 @@
 	margin: auto;
 	background: white;
 	width: 400px;
-	height: 300px;
+	height: 400px;
 	border-radius: 3px;
 	box-shadow: 1px 1px 8px var(--gray-1);
 	font-size: 1.2em;
@@ -311,6 +311,13 @@
 	.StartForm {
 		width: 320px;
 	}
+}
+
+.StartForm video {
+	width: 150px;
+	height: 150px;
+	border-radius: 50%;
+	object-fit: cover;
 }
 
 .StartForm .startField input {
