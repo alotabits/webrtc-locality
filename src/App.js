@@ -196,7 +196,7 @@ const Region = ({ anchor, children }) => {
 	return <div className={cx(styles.Region, anchorClass)}>{children}</div>;
 };
 
-const JoinForm = ({ style, disabled, onInteract, onJoin }) => {
+const JoinForm = ({ style, disabled, version, onJoin }) => {
 	const [name, setName] = React.useState("");
 	const { mediaStream, error: mediaError } = useMediaStream({
 		video: true,
@@ -213,7 +213,7 @@ const JoinForm = ({ style, disabled, onInteract, onJoin }) => {
 			}}
 		>
 			<div className={styles.title}>
-				Archipelago<sup> 0</sup>
+				Archipelago<sup> {version}</sup>
 			</div>
 			<div className={styles.joinField}>
 				<input
@@ -252,7 +252,7 @@ const JoinForm = ({ style, disabled, onInteract, onJoin }) => {
 
 const AnimatedJoinForm = animated(JoinForm);
 
-export default function App({ getLogQueue, query }) {
+export default function App({ getLogQueue, query, version }) {
 	const consoleLogRef = React.useRef([]);
 
 	useEffect(() => {
@@ -451,6 +451,7 @@ export default function App({ getLogQueue, query }) {
 					item && (
 						<AnimatedJoinForm
 							style={{ opacity: stylez.opacity }}
+							version={version}
 							onJoin={(name, mediaStream) =>
 								handleJoin(name, mediaStream, query.get("join"))
 							}
