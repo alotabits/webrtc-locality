@@ -156,7 +156,6 @@ export class PeerJSManager {
 		this.peer.on("open", (id) => {
 			this.id = id;
 			this.onOpen?.(id);
-			navigator.clipboard.writeText(id);
 		});
 
 		this.peer.on("connection", (dataConn) => {
