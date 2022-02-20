@@ -249,8 +249,8 @@ export default function App({ getLogQueue }) {
 			audioDestination: destination,
 			audioPlay: () => {
 				try {
-					context.resume();
 					element.srcObject = destination.stream;
+					context.resume();
 					element.play();
 				} catch (error) {
 					console.error(error);
