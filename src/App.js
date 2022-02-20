@@ -154,9 +154,7 @@ function Avatar({
 					autoPlay
 					playsInline
 				/>
-				<div className={styles.avatarVolume}>
-					{name} {Math.ceil(volume * 100)}
-				</div>
+				<div className={styles.avatarVolume}>{name}</div>
 			</div>
 		</animated.div>
 	);
