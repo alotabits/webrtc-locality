@@ -183,6 +183,9 @@ const JoinForm = ({ style, disabled, onInteract, onJoin }) => {
 				onJoin(name, mediaStream);
 			}}
 		>
+			<div className={styles.title}>
+				Archipelago<sup> 0</sup>
+			</div>
 			<div className={styles.joinField}>
 				<input
 					placeholder="Name"
