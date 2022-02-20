@@ -243,14 +243,14 @@ export default function App({ getLogQueue }) {
 		const element = document.createElement("audio");
 
 		document.body.appendChild(element);
-		element.srcObject = destination.stream;
 
 		return {
 			audioContext: context,
 			audioDestination: destination,
 			audioPlay: () => {
-				context.resume();
+				element.srcObject = destination.stream;
 				element.play();
+				context.resume();
 			},
 		};
 	});
