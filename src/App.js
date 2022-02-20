@@ -232,6 +232,7 @@ const StartForm = ({ style, join, version, onStart }) => {
 					ref={videoRef}
 					muted
 					autoPlay
+					playsInline
 				/>
 			</div>
 			<div className={styles.startField}>
