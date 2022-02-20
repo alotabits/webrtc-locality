@@ -237,25 +237,23 @@ export default function App({ getLogQueue }) {
 
 	const [panning, setPanning] = React.useState(false);
 
-	const [{ audioContext, audioDestination }] = React.useState(() => {
+	const [avatarAudio] = React.useState(() => {
 		const context = new AudioContext();
 		const destination = context.createMediaStreamDestination();
+		const element = document.createElement("audio");
+
+		document.body.appendChild(element);
+		element.srcObject = destination.stream;
 
 		return {
 			audioContext: context,
 			audioDestination: destination,
+			audioPlay: () => {
+				context.resume();
+				element.play();
+			},
 		};
 	});
-
-	const audioOutRef = React.useCallback(
-		(ref) => {
-			if (ref) {
-				ref.srcObject = audioDestination.stream;
-			}
-		},
-		[audioDestination]
-	);
-
 	const [avatars, updateAvatars] = useImmer({});
 	const [peerManager] = React.useState(() => {
 		const m = new PeerJSManager();
@@ -268,9 +266,6 @@ export default function App({ getLogQueue }) {
 
 	const handleJoin = React.useCallback(
 		(joinName, joinMediaStream) => {
-			audioContext.resume();
-			document.getElementById("audioOut")?.play();
-
 			setAvatarState(peerManager.dispatch(actions.setName(joinName)));
 			setAvatarState(
 				peerManager.dispatch(actions.setMediaStream(joinMediaStream))
@@ -331,7 +326,6 @@ export default function App({ getLogQueue }) {
 
 	return (
 		<>
-			<audio id="audioOut" ref={audioOutRef} />
 			<TransformWrapper
 				pinch={{ step: 2 }}
 				centerOnInit
@@ -362,8 +356,8 @@ export default function App({ getLogQueue }) {
 						}
 					/>
 					<Avatars
-						audioContext={audioContext}
-						audioDestination={audioDestination}
+						audioContext={avatarAudio.audioContext}
+						audioDestination={avatarAudio.audioDestination}
 					>
 						{avatarState.mediaStream && (
 							<Avatar
@@ -402,10 +396,7 @@ export default function App({ getLogQueue }) {
 						<AnimatedJoinForm
 							style={{ opacity: stylez.opacity }}
 							onJoin={(name, mediaStream) => handleJoin(name, mediaStream)}
-							onInteract={() => {
-								audioContext.resume();
-								audioOutRef.current?.play();
-							}}
+							onInteract={avatarAudio.audioPlay}
 						/>
 					)
 			)}
