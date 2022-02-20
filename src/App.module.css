@@ -8,6 +8,8 @@
 	--gray-2: gray;
 	--padding-1: 5px;
 	--padding-2: 10px;
+	--margin-1: 5px;
+	--margin-2: 10px;
 }
 
 :global(body) {
@@ -37,6 +39,30 @@
 	background-color: white;
 	background-size: 40px 40px;
 	background-image: radial-gradient(circle, var(--gray-1) 1px, transparent 1px);
+}
+
+.Button {
+	display: inline-block;
+	position: relative;
+	background: blue;
+	border-radius: 1em;
+	height: 2em;
+	min-width: 2em;
+}
+
+.Button > .buttonContent {
+	display: flex;
+	flex-flow: row nowrap;
+	justify-content: center;
+	align-items: center;
+	width: 100%;
+	height: 100%;
+}
+
+.Button > button {
+	position: absolute;
+	inset: 0;
+	opacity: 0;
 }
 
 .Avatar {
@@ -135,16 +161,6 @@
 	color: transparent;
 }
 
-.HUD button {
-	position: absolute;
-	left: 10px;
-	top: 10px;
-	width: 30px;
-	height: 30px;
-	border-radius: 50%;
-	border: solid var(--gray-2) 1px;
-}
-
 .HUD .log::-webkit-scrollbar {
 	display: none;
 }
@@ -157,6 +173,34 @@
 	height: auto;
 	padding: 30px;
 	color: black;
+}
+
+.Region {
+	position: absolute;
+}
+
+.Region.topLeft,
+.Region.topRight {
+	top: 0;
+	margin-top: var(--margin-2);
+}
+
+.Region.bottomLeft,
+.Region.bottomRight {
+	bottom: 0;
+	margin-bottom: var(--margin-2);
+}
+
+.Region.topLeft,
+.Region.bottomLeft {
+	left: 0;
+	margin-left: var(--margin-2);
+}
+
+.Region.topRight,
+.Region.bottomRight {
+	right: 0;
+	margin-right: var(--margin-2);
 }
 
 .CallButton {

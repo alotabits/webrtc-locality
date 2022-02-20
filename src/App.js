@@ -1,3 +1,5 @@
+import { faFileAlt, faShare } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import cx from "clsx";
 import React from "react";
 import {
@@ -12,6 +14,23 @@ import { useImmer } from "use-immer";
 import styles from "./App.module.css";
 import { useMediaStream } from "./hooks";
 import { actions, PeerJSManager } from "./peerjs-manager";
+
+// General Components
+
+const Button = ({ children, onClick }) => {
+	return (
+		<div className={styles.Button}>
+			<div className={styles.buttonContent}>{children}</div>
+			<button onClick={onClick} />
+		</div>
+	);
+};
+
+const Icon = ({ icon, color = "white" }) => {
+	return <FontAwesomeIcon icon={icon} color={color} />;
+};
+
+// App Components
 
 const AvatarContext = React.createContext({
 	audioContext: null,
@@ -167,6 +186,16 @@ function HUD({ children }) {
 	return <div className={styles.HUD}>{children}</div>;
 }
 
+const Region = ({ anchor, children }) => {
+	const anchorClass = {
+		topLeft: styles.topLeft,
+		topRight: styles.topRight,
+		bottomLeft: styles.bottomLeft,
+		bottomRight: styles.bottomRight,
+	}[anchor];
+	return <div className={cx(styles.Region, anchorClass)}>{children}</div>;
+};
+
 const JoinForm = ({ style, disabled, onInteract, onJoin }) => {
 	const [name, setName] = React.useState("");
 	const { mediaStream, error: mediaError } = useMediaStream({
@@ -223,7 +252,7 @@ const JoinForm = ({ style, disabled, onInteract, onJoin }) => {
 
 const AnimatedJoinForm = animated(JoinForm);
 
-export default function App({ getLogQueue }) {
+export default function App({ getLogQueue, query }) {
 	const consoleLogRef = React.useRef([]);
 
 	useEffect(() => {
@@ -274,7 +303,7 @@ export default function App({ getLogQueue }) {
 	);
 
 	const handleJoin = React.useCallback(
-		(joinName, joinMediaStream) => {
+		(joinName, joinMediaStream, joinId) => {
 			avatarAudio.audioPlay();
 			setAvatarState(peerManager.dispatch(actions.setName(joinName)));
 			setAvatarState(
@@ -297,10 +326,9 @@ export default function App({ getLogQueue }) {
 
 			peerManager.start({
 				onOpen: (id) => {
-					if (window.location.hash) {
-						peerManager.connect(window.location.hash.slice(1));
+					if (joinId) {
+						peerManager.connect(joinId);
 					}
-					window.location.hash = id;
 				},
 				onPeerConnect: handlePeerConnect,
 				onPeerDisconnect: handlePeerDisconnect,
@@ -398,14 +426,34 @@ export default function App({ getLogQueue }) {
 						</div>
 					))}
 				</div>
-				<button onClick={() => setLogOpen((v) => !v)}></button>
+				<Region anchor="topLeft">
+					<Button onClick={() => setLogOpen((v) => !v)}>
+						<Icon icon={faFileAlt} />
+					</Button>
+				</Region>
+				<Region anchor="bottomLeft">
+					<Button
+						onClick={() => {
+							const url = new URL(window.location);
+							url.searchParams.set("join", peerManager.id);
+							console.log(url.toString());
+							navigator.share({
+								url: url.toString(),
+							});
+						}}
+					>
+						<Icon icon={faShare} />
+					</Button>
+				</Region>
 			</HUD>
 			{transitions(
 				(stylez, item) =>
 					item && (
 						<AnimatedJoinForm
 							style={{ opacity: stylez.opacity }}
-							onJoin={(name, mediaStream) => handleJoin(name, mediaStream)}
+							onJoin={(name, mediaStream) =>
+								handleJoin(name, mediaStream, query.get("join"))
+							}
 						/>
 					)
 			)}

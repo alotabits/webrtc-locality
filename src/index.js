@@ -4,10 +4,12 @@ import ReactDOM from "react-dom";
 import { getLogQueue } from "./@log";
 import App from "./App";
 
+const query = new URLSearchParams(document.location.hash);
 const rootElement = document.getElementById("root");
+
 ReactDOM.render(
 	<StrictMode>
-		<App getLogQueue={getLogQueue} />
+		<App getLogQueue={getLogQueue} query={query} />
 	</StrictMode>,
 	rootElement
 );
