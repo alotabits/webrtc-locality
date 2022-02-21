@@ -1,18 +1,19 @@
 import {
-	faFileAlt,
-	faQrcode,
-	faShare
+  faFileAlt,
+  faQrcode,
+  faShare,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { DialogContent, DialogOverlay } from "@reach/dialog";
+import "@reach/dialog/styles.css";
 import cx from "clsx";
 import qrious from "qrious";
 import React from "react";
 import {
-	animated,
-	config as springConfig,
-	useSpring,
-	useTransition
+  animated,
+  config as springConfig,
+  useSpring,
+  useTransition,
 } from "react-spring";
 import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
 import { useEffect } from "react/cjs/react.development";
@@ -490,7 +491,11 @@ export default function App({ getLogQueue, query, version }) {
         </Region>
       </HUD>
 
-      <FadeDialog className={styles.logDialog} isOpen={logOpen} onDismiss={() => setLogOpen(false)}>
+      <FadeDialog
+        className={styles.logDialog}
+        isOpen={logOpen}
+        onDismiss={() => setLogOpen(false)}
+      >
         <div ref={logRef} className={styles.logContent}>
           {consoleLogRef.current.map((entry, i) => (
             <div key={i} className={styles.logEntry}>
@@ -499,7 +504,7 @@ export default function App({ getLogQueue, query, version }) {
             </div>
           ))}
         </div>
-		<button onClick={() => setLogOpen(false)}>Close</button>
+        <button onClick={() => setLogOpen(false)}>Close</button>
       </FadeDialog>
 
       <FadeDialog isOpen={!avatarState.mediaStream}>
