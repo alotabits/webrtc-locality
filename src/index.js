@@ -8,8 +8,8 @@ const query = new URLSearchParams(document.location.search);
 const rootElement = document.getElementById("root");
 
 ReactDOM.render(
-	<StrictMode>
-		<App getLogQueue={getLogQueue} query={query} version={2} />
-	</StrictMode>,
-	rootElement
+  <StrictMode>
+    <App getLogQueue={getLogQueue} query={query} version={3} />
+  </StrictMode>,
+  rootElement
 );
