@@ -2,6 +2,7 @@ import {
   faFileAlt,
   faQrcode,
   faShare,
+  faUsers
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { DialogContent, DialogOverlay } from "@reach/dialog";
@@ -13,7 +14,7 @@ import {
   animated,
   config as springConfig,
   useSpring,
-  useTransition,
+  useTransition
 } from "react-spring";
 import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
 import { useEffect } from "react/cjs/react.development";
@@ -24,12 +25,28 @@ import { actions, PeerJSManager } from "./peerjs-manager";
 
 // General Components
 
+const Input = ({ className, ...props }) => {
+  return (
+    <div className={cx(styles.Input, className)}>
+      <input {...props} />
+    </div>
+  );
+};
+
 const Button = ({ children, onClick }) => {
   return (
     <div className={styles.Button}>
       <div className={styles.buttonContent}>{children}</div>
       <button onClick={onClick} />
     </div>
+  );
+};
+
+const TextButton = ({ disabled, onClick, children }) => {
+  return (
+    <button disabled={disabled} className={styles.TextButton} onClick={onClick}>
+      {children}
+    </button>
   );
 };
 
@@ -64,6 +81,7 @@ function Avatar({
   name,
   mediaStream,
   location,
+  group,
   muted,
   mirror,
 }) {
@@ -159,7 +177,10 @@ function Avatar({
           autoPlay
           playsInline
         />
-        <div className={styles.avatarVolume}>{name}</div>
+        <div className={styles.avatarVolume}>
+          {name}
+          {group ? ` (${group})` : ""}
+        </div>
       </div>
     </animated.div>
   );
@@ -226,7 +247,7 @@ const StartForm = ({ join, version, onStart }) => {
         <video ref={videoRef} muted autoPlay playsInline />
       </div>
       <div className={styles.startField}>
-        <input
+        <Input
           placeholder="Name"
           type="text"
           value={name}
@@ -234,7 +255,7 @@ const StartForm = ({ join, version, onStart }) => {
         />
       </div>
       <div className={styles.startField}>
-        <input
+        <Input
           type="hidden"
           readOnly
           disabled
@@ -248,9 +269,9 @@ const StartForm = ({ join, version, onStart }) => {
         />
       </div>
       <div>
-        <button disabled={!!mediaError || !mediaStream}>
+        <TextButton disabled={!!mediaError || !mediaStream}>
           {join ? "Join" : "Create"}
-        </button>
+        </TextButton>
       </div>
     </form>
   );
@@ -276,7 +297,7 @@ const Qr = ({ id, onClose }) => {
   return (
     <div className={styles.Qr}>
       <img alt="" ref={imgRef} />
-      <button onClick={onClose}>Close</button>
+      <TextButton onClick={onClose}>Close</TextButton>
     </div>
   );
 };
@@ -311,6 +332,24 @@ const FadeDialog = ({ className, isOpen, onDismiss, ...props }) => {
           />
         </AnimatedDialogOverlay>
       )
+  );
+};
+
+const GroupForm = ({ onGroup }) => {
+  const [groupName, setGroupName] = React.useState();
+
+  return (
+    <form
+      className={styles.GroupForm}
+      onSubmit={(e) => {
+        e.preventDefault();
+        onGroup(groupName);
+      }}
+    >
+      <div>Choose a group name</div>
+      <Input value={groupName} onChange={(e) => setGroupName(e.target.value)} />
+      <TextButton>Ok</TextButton>
+    </form>
   );
 };
 
@@ -409,6 +448,8 @@ export default function App({ getLogQueue, query, version }) {
 
   const [logOpen, setLogOpen] = React.useState(false);
 
+  const [groupOpen, setGroupOpen] = React.useState(false);
+
   const logRef = React.useRef(null);
   React.useEffect(() => {
     const el = logRef.current;
@@ -489,6 +530,11 @@ export default function App({ getLogQueue, query, version }) {
             <Icon icon={faQrcode} />
           </Button>
         </Region>
+        <Region anchor="bottomRight">
+          <Button onClick={() => setGroupOpen(true)}>
+            <Icon icon={faUsers} />
+          </Button>
+        </Region>
       </HUD>
 
       <FadeDialog
@@ -504,7 +550,7 @@ export default function App({ getLogQueue, query, version }) {
             </div>
           ))}
         </div>
-        <button onClick={() => setLogOpen(false)}>Close</button>
+        <TextButton onClick={() => setLogOpen(false)}>Close</TextButton>
       </FadeDialog>
 
       <FadeDialog isOpen={!avatarState.mediaStream}>
@@ -522,6 +568,15 @@ export default function App({ getLogQueue, query, version }) {
         onDismiss={() => setQrDialogOpen(false)}
       >
         <Qr id={peerManager.id} onClose={() => setQrDialogOpen(false)} />
+      </FadeDialog>
+
+      <FadeDialog isOpen={groupOpen} onDismiss={() => setGroupOpen(false)}>
+        <GroupForm
+          onGroup={(groupName) => {
+            setGroupOpen(false);
+            setAvatarState(peerManager.dispatch(actions.setGroup(groupName)));
+          }}
+        />
       </FadeDialog>
     </>
   );
