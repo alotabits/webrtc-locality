@@ -359,6 +359,7 @@
 	object-fit: cover;
 	display: block;
 	background: white;
+	transform: scaleX(-1);
 }
 
 .StartForm .startField input {
