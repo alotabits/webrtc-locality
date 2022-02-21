@@ -6,7 +6,7 @@ import {
 	animated,
 	config as springConfig,
 	useSpring,
-	useTransition,
+	useTransition
 } from "react-spring";
 import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
 import { useEffect } from "react/cjs/react.development";
@@ -246,7 +246,7 @@ const StartForm = ({ style, join, version, onStart }) => {
 			</div>
 			<div className={styles.startField}>
 				<input
-					type="text"
+					type="hidden"
 					readOnly
 					disabled
 					value={
