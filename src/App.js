@@ -2,7 +2,7 @@ import {
   faFileAlt,
   faQrcode,
   faShare,
-  faUsers
+  faUsers,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { DialogContent, DialogOverlay } from "@reach/dialog";
@@ -14,7 +14,7 @@ import {
   animated,
   config as springConfig,
   useSpring,
-  useTransition
+  useTransition,
 } from "react-spring";
 import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
 import { useEffect } from "react/cjs/react.development";
@@ -530,7 +530,7 @@ export default function App({ getLogQueue, query, version }) {
             <Icon icon={faQrcode} />
           </Button>
         </Region>
-        <Region anchor="bottomRight">
+        <Region anchor="topRight">
           <Button onClick={() => setGroupOpen(true)}>
             <Icon icon={faUsers} />
           </Button>
