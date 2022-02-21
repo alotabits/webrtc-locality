@@ -5,7 +5,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { DialogContent, DialogOverlay } from "@reach/dialog";
-import "@reach/dialog/styles.css";
+// import "@reach/dialog/styles.css";
 import cx from "clsx";
 import qrious from "qrious";
 import React from "react";
