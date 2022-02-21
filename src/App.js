@@ -215,7 +215,10 @@ const StartForm = ({ style, join, version, onStart }) => {
 			}}
 		>
 			<div className={styles.title}>
-				Archipelago<sup> {version}</sup>
+				Archipelago
+				<sup style={{ position: "absolute", transform: "translateX(0.25ex)" }}>
+					{version}
+				</sup>
 			</div>
 			<div
 				style={{
