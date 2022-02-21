@@ -1,5 +1,3 @@
-@import "@reach/dialog/styles";
-
 :global(*) {
   box-sizing: border-box;
 }
