@@ -11,6 +11,7 @@
 	--margin-1: 5px;
 	--margin-2: 10px;
 	--primary: #dc7e13;
+	--secondary: hsl(207, 100%, 60%);
 }
 
 :global(body) {
@@ -21,9 +22,21 @@
 	-webkit-appearance: none;
 }
 
-.App {
-	font-family: sans-serif;
-	text-align: center;
+.transformWrapper {
+	background: gray;
+	max-width: 100vw;
+	max-height: 100vh;
+}
+
+.transformContent {
+	background-color: white;
+	background-size: 40px 40px;
+	background-image: radial-gradient(circle, var(--gray-1) 1px, transparent 1px);
+}
+
+.locator {
+	position: absolute;
+	inset: 0;
 }
 
 .title {
@@ -42,12 +55,6 @@
 	font-size: 0.6em;
 	position: absolute;
 	transform: translate(0.25ex, -0.25ex);
-}
-
-.transformContent {
-	background-color: white;
-	background-size: 40px 40px;
-	background-image: radial-gradient(circle, var(--gray-1) 1px, transparent 1px);
 }
 
 .Button {
@@ -137,8 +144,7 @@
 }
 
 .Avatars {
-	width: 100%;
-	height: 100%;
+	pointer-events: none;
 }
 
 .HUD {
@@ -182,6 +188,19 @@
 	height: auto;
 	padding: 30px;
 	color: black;
+}
+
+.HUD .logEntry {
+	display: flex;
+	flex-flow: row nowrap;
+}
+
+.HUD .logEntry .logArrow {
+	font-size: 0.8em;
+}
+
+.HUD .logEntry .logText {
+	margin: 0;
 }
 
 .Region {
@@ -326,11 +345,20 @@
 	}
 }
 
-.StartForm video {
+.StartForm .video {
+	border-radius: 50%;
+	padding: 10px;
+	margin-bottom: 10px;
+	background: var(--secondary);
+}
+
+.StartForm .video > video {
 	width: 150px;
 	height: 150px;
 	border-radius: 50%;
 	object-fit: cover;
+	display: block;
+	background: white;
 }
 
 .StartForm .startField input {

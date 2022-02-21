@@ -52,9 +52,7 @@ function Avatars({ audioContext, audioDestination, children }) {
 
 	return (
 		<AvatarContext.Provider value={contextValue}>
-			<div className={[styles.Avatars]} style={{ pointerEvents: "none" }}>
-				{children}
-			</div>
+			<div className={styles.Avatars}>{children}</div>
 		</AvatarContext.Provider>
 	);
 }
@@ -223,21 +221,8 @@ const StartForm = ({ style, join, version, onStart }) => {
 				Archipelago
 				<sup>{version}</sup>
 			</div>
-			<div
-				style={{
-					borderRadius: "50%",
-					padding: "10px",
-					background: "hsl(207,100%,60%)",
-					marginBottom: "10px",
-				}}
-			>
-				<video
-					style={{ display: "block", background: "white" }}
-					ref={videoRef}
-					muted
-					autoPlay
-					playsInline
-				/>
+			<div className={styles.video}>
+				<video ref={videoRef} muted autoPlay playsInline />
 			</div>
 			<div className={styles.startField}>
 				<input
@@ -434,11 +419,7 @@ export default function App({ getLogQueue, query, version }) {
 				onPanningStop={() => setTimeout(() => setPanning(false), 10)}
 			>
 				<TransformComponent
-					wrapperStyle={{
-						background: "gray",
-						maxWidth: "100vw",
-						maxHeight: "100vh",
-					}}
+					wrapperClass={styles.transformWrapper}
 					contentClass={styles.transformContent}
 					contentStyle={{
 						width: `${worldWidth}px`,
@@ -446,7 +427,7 @@ export default function App({ getLogQueue, query, version }) {
 					}}
 				>
 					<div
-						style={{ position: "absolute", inset: 0 }}
+						className={styles.locator}
 						onClick={(e) =>
 							handleChooseLocation([
 								e.nativeEvent.offsetX,
@@ -481,9 +462,9 @@ export default function App({ getLogQueue, query, version }) {
 				<div ref={logRef} className={cx(styles.log, logOpen && styles.logOpen)}>
 					Log:
 					{consoleLogRef.current.map((entry, i) => (
-						<div key={i} style={{ display: "flex", flexFlow: "row nowrap" }}>
-							<div style={{ fontSize: "0.8em" }}>►&nbsp;</div>
-							<pre style={{ margin: 0 }}>{entry}</pre>
+						<div key={i} className={styles.logEntry}>
+							<div className={styles.logArrow}>►&nbsp;</div>
+							<pre className={styles.logText}>{entry}</pre>
 						</div>
 					))}
 				</div>
