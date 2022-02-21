@@ -6,7 +6,7 @@ import {
 	animated,
 	config as springConfig,
 	useSpring,
-	useTransition
+	useTransition,
 } from "react-spring";
 import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
 import { useEffect } from "react/cjs/react.development";
@@ -216,9 +216,7 @@ const StartForm = ({ style, join, version, onStart }) => {
 		>
 			<div className={styles.title}>
 				Archipelago
-				<sup style={{ position: "absolute", transform: "translateX(0.25ex)" }}>
-					{version}
-				</sup>
+				<sup>{version}</sup>
 			</div>
 			<div
 				style={{
