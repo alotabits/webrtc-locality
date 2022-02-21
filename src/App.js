@@ -1,6 +1,11 @@
-import { faFileAlt, faShare } from "@fortawesome/free-solid-svg-icons";
+import {
+	faFileAlt,
+	faQrcode,
+	faShare,
+} from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import cx from "clsx";
+import qrious from "qrious";
 import React from "react";
 import {
 	animated,
@@ -267,6 +272,33 @@ const StartForm = ({ style, join, version, onStart }) => {
 
 const AnimatedStartForm = animated(StartForm);
 
+function makeJoinLink(id) {
+	const url = new URL(window.location);
+	url.searchParams.set("join", id);
+	return url.toString();
+}
+
+const QrDialog = ({ style, id, onClose }) => {
+	const imgRef = React.useCallback(
+		(imgEl) => {
+			new qrious({
+				element: imgEl,
+				value: makeJoinLink(id),
+				size: 200,
+			});
+		},
+		[id]
+	);
+	return (
+		<div style={style} className={styles.QrDialog}>
+			<img alt="" ref={imgRef} />
+			<button onClick={onClose}>Close</button>
+		</div>
+	);
+};
+
+const AnimatedQrDialog = animated(QrDialog);
+
 export default function App({ getLogQueue, query, version }) {
 	const consoleLogRef = React.useRef([]);
 
@@ -367,6 +399,20 @@ export default function App({ getLogQueue, query, version }) {
 		},
 	});
 
+	const [qrDialogOpen, setQrDialogOpen] = React.useState(false);
+
+	const qrTransitions = useTransition(qrDialogOpen, {
+		from: {
+			opacity: 0,
+		},
+		enter: {
+			opacity: 1,
+		},
+		leave: {
+			opacity: 0,
+		},
+	});
+
 	const [logOpen, setLogOpen] = React.useState(false);
 
 	const logRef = React.useRef(null);
@@ -449,15 +495,17 @@ export default function App({ getLogQueue, query, version }) {
 				<Region anchor="bottomLeft">
 					<Button
 						onClick={() => {
-							const url = new URL(window.location);
-							url.searchParams.set("join", peerManager.id);
-							console.log(url.toString());
-							navigator.share({
-								url: url.toString(),
-							});
+							navigator
+								.share({
+									url: makeJoinLink(peerManager.id),
+								})
+								.catch((err) => console.error(err));
 						}}
 					>
 						<Icon icon={faShare} />
+					</Button>
+					<Button onClick={() => setQrDialogOpen(true)}>
+						<Icon icon={faQrcode} />
 					</Button>
 				</Region>
 			</HUD>
@@ -471,6 +519,17 @@ export default function App({ getLogQueue, query, version }) {
 							onStart={(name, mediaStream) =>
 								handleStart(name, mediaStream, query.get("join"))
 							}
+						/>
+					)
+			)}
+
+			{qrTransitions(
+				(stylez, item) =>
+					item && (
+						<AnimatedQrDialog
+							id={peerManager.id}
+							style={{ opacity: stylez.opacity }}
+							onClose={() => setQrDialogOpen(false)}
 						/>
 					)
 			)}

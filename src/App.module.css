@@ -186,6 +186,9 @@
 
 .Region {
 	position: absolute;
+	display: flex;
+	flex-flow: row nowrap;
+	gap: 5px;
 }
 
 .Region.topLeft,
@@ -297,7 +300,8 @@
 	animation-timing-function: linear;
 }
 
-.StartForm {
+.StartForm,
+.QrDialog {
 	display: flex;
 	flex-flow: column nowrap;
 	justify-content: center;
@@ -316,7 +320,8 @@
 }
 
 @media (max-width: 400px) {
-	.StartForm {
+	.StartForm,
+	.QrDialog {
 		width: 320px;
 	}
 }
@@ -336,7 +341,8 @@
 	padding: var(--padding-1);
 }
 
-.StartForm button {
+.StartForm button,
+.QrDialog button {
 	appearance: none;
 	border: none;
 	background: white;
