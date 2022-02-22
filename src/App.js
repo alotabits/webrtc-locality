@@ -2,7 +2,7 @@ import {
   faFileAlt,
   faQrcode,
   faShare,
-  faUsers,
+  faUsers
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { DialogContent, DialogOverlay } from "@reach/dialog";
@@ -14,7 +14,7 @@ import {
   animated,
   config as springConfig,
   useSpring,
-  useTransition,
+  useTransition
 } from "react-spring";
 import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
 import { useEffect } from "react/cjs/react.development";
@@ -302,6 +302,7 @@ const Qr = ({ id, onClose }) => {
   const imgRef = React.useCallback(
     (imgEl) => {
       new qrious({
+        backgroundAlpha: 0,
         element: imgEl,
         value: makeJoinLink(id),
         size: 200,
