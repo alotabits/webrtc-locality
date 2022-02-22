@@ -43,8 +43,23 @@ const Button = ({ children, onClick }) => {
 };
 
 const TextButton = ({ disabled, onClick, children }) => {
+  /*
+  const [borderRadius] = React.useState(() => {
+    const values = Array.from(8);
+    for (let i = 0; i < 8; i++) {
+      values[i] = Math.random() * 30 + 50;
+    }
+    return `${values.slice(0, 4).join("% ")}% / ${values.slice(4).join("% ")}%`;
+  });
+  */
+
   return (
-    <button disabled={disabled} className={styles.TextButton} onClick={onClick}>
+    <button
+      disabled={disabled}
+      className={styles.TextButton}
+      // style={{ borderRadius }}
+      onClick={onClick}
+    >
       {children}
     </button>
   );
@@ -165,7 +180,7 @@ function Avatar({
         transform: springStyles.transform,
         backgroundColor: springStyles.volume.to({
           range: [0, 0.85, 1],
-          output: ["white", "white", "hsl(207,100%,60%)"],
+          output: ["var(--sand-1)", "var(--sand-1)", "var(--sand-2)"],
         }),
       }}
     >
@@ -346,7 +361,7 @@ const GroupForm = ({ onGroup }) => {
         onGroup(groupName);
       }}
     >
-      <div>Choose a group name</div>
+      <div>Choose a group name.</div>
       <Input value={groupName} onChange={(e) => setGroupName(e.target.value)} />
       <TextButton>Ok</TextButton>
     </form>
