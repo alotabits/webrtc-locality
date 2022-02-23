@@ -205,6 +205,7 @@ function Avatar({
         <div className={styles.avatarVolume}>
           {name}
           {group ? ` (${group})` : ""}
+          {volume}
         </div>
       </div>
     </animated.div>
