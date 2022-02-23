@@ -356,7 +356,7 @@ const FadeDialog = ({ className, isOpen, onDismiss, ...props }) => {
 };
 
 const GroupForm = ({ onGroup }) => {
-  const [groupName, setGroupName] = React.useState();
+  const [groupName, setGroupName] = React.useState("");
 
   return (
     <form
