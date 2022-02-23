@@ -2,7 +2,7 @@ import {
   faFileAlt,
   faQrcode,
   faShare,
-  faUsers
+  faUsers,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { DialogContent, DialogOverlay } from "@reach/dialog";
@@ -14,7 +14,7 @@ import {
   animated,
   config as springConfig,
   useSpring,
-  useTransition
+  useTransition,
 } from "react-spring";
 import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
 import { useEffect } from "react/cjs/react.development";
@@ -24,6 +24,10 @@ import { useMediaStream } from "./hooks";
 import { actions, PeerJSManager } from "./peerjs-manager";
 
 // General Components
+
+const Text = ({ className, children }) => {
+  return <span className={className}>{children}</span>;
+};
 
 const Input = ({ className, ...props }) => {
   return (
@@ -254,10 +258,10 @@ const StartForm = ({ join, version, onStart }) => {
         onStart(name, mediaStream);
       }}
     >
-      <div className={styles.title}>
+      <Text className={styles.title}>
         Archipelago
         <sup>{version}</sup>
-      </div>
+      </Text>
       <div className={styles.video}>
         <video ref={videoRef} muted autoPlay playsInline />
       </div>
@@ -362,7 +366,7 @@ const GroupForm = ({ onGroup }) => {
         onGroup(groupName);
       }}
     >
-      <div>Choose a group name.</div>
+      <Text>Choose a group name.</Text>
       <Input value={groupName} onChange={(e) => setGroupName(e.target.value)} />
       <TextButton>Ok</TextButton>
     </form>
