@@ -381,7 +381,11 @@ export default function App({ getLogQueue, query, version }) {
       consoleLogRef.current.push(
         args
           .map((arg) =>
-            typeof arg !== "string" ? JSON.stringify(arg, undefined, 2) : arg
+            typeof arg === "string"
+              ? arg
+              : arg instanceof Error
+              ? arg.toString()
+              : JSON.stringify(arg, undefined, 2)
           )
           .join(" ")
       );
