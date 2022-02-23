@@ -302,10 +302,11 @@
   margin: auto;
   display: flex;
   flex-flow: column nowrap;
+  align-items: center;
+  gap: 10px;
 }
 
 .logDialog .Button {
-  display: block;
   margin: var(--margin-2) auto;
 }
 
@@ -315,7 +316,11 @@
 
 .logDialog .logContent {
   flex: auto;
-  overflow: scroll;
+  overflow: auto;
+  width: 100%;
+  background: white;
+  padding: var(--padding-1);
+  border-radius: 3px;
 }
 
 .logEntry {
