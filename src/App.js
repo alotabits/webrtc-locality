@@ -415,7 +415,9 @@ export default function App({ getLogQueue, query, version }) {
       },
     };
   });
+
   const [avatars, updateAvatars] = useImmer({});
+
   const [peerManager] = React.useState(() => {
     const m = new PeerJSManager({
       location: [worldWidth / 2, worldHeight / 2],
@@ -423,6 +425,7 @@ export default function App({ getLogQueue, query, version }) {
     window.m = m;
     return m;
   });
+
   const [avatarState, setAvatarState] = React.useState(() =>
     peerManager.getLocalState()
   );
@@ -532,6 +535,7 @@ export default function App({ getLogQueue, query, version }) {
           </Avatars>
         </TransformComponent>
       </TransformWrapper>
+
       <HUD>
         <Region anchor="topLeft">
           <Button onClick={() => setLogOpen((v) => !v)}>
