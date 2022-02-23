@@ -115,7 +115,7 @@ function Avatar({
       return 0;
     }
 
-    if (localGroup && group === localGroup) {
+    if (localGroup && group && localGroup === group) {
       return 1;
     }
 
