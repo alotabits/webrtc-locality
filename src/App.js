@@ -26,7 +26,7 @@ import { actions, PeerJSManager } from "./peerjs-manager";
 // General Components
 
 const Text = ({ className, children }) => {
-  return <span className={className}>{children}</span>;
+  return <span className={cx(styles.Text, className)}>{children}</span>;
 };
 
 const Input = ({ className, ...props }) => {
