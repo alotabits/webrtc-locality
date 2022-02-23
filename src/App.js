@@ -83,10 +83,10 @@ const avatarRadius = 170 / 2;
 const worldWidth = 1920;
 const worldHeight = 1080;
 
-function Avatars({ audioContext, audioDestination, children }) {
+function Avatars({ localGroup, audioContext, audioDestination, children }) {
   const contextValue = React.useMemo(() => {
-    return { audioContext, audioDestination };
-  }, [audioContext, audioDestination]);
+    return { localGroup, audioContext, audioDestination };
+  }, [localGroup, audioContext, audioDestination]);
 
   return (
     <AvatarContext.Provider value={contextValue}>
@@ -107,9 +107,16 @@ function Avatar({
   const [playing, setPlaying] = React.useState(false);
   const videoRef = React.useRef(null);
 
+  const { localGroup, audioContext, audioDestination } =
+    React.useContext(AvatarContext);
+
   const volume = React.useMemo(() => {
     if (muted) {
       return 0;
+    }
+
+    if (group === localGroup) {
+      return 1;
     }
 
     const l = location;
@@ -119,10 +126,9 @@ function Avatar({
       Math.sqrt(Math.pow(m[0] - l[0], 2) + Math.pow(m[1] - l[1], 2)) -
       2 * avatarRadius;
     const i = Math.min(Math.max(1 - d / 400, 0), 1);
-    return Math.pow(i, 2.0);
-  }, [muted, location, listenerLocation]);
+    return Math.pow(i, localGroup ? 2.0 : 4.0);
+  }, [localGroup, group, muted, location, listenerLocation]);
 
-  const { audioContext, audioDestination } = React.useContext(AvatarContext);
   const gainRef = React.useRef({ value: 0, setValue: () => {} });
 
   useEffect(() => {
@@ -513,6 +519,7 @@ export default function App({ getLogQueue, query, version }) {
             }
           />
           <Avatars
+            localGroup={avatarState.group}
             audioContext={avatarAudio.audioContext}
             audioDestination={avatarAudio.audioDestination}
           >
