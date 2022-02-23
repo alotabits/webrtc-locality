@@ -90,9 +90,9 @@
   display: inline-block;
   position: relative;
   background: var(--stone);
-  border-radius: 1em;
-  height: 2em;
-  min-width: 2em;
+  border-radius: 50%;
+  height: 2.5em;
+  min-width: 2.5em;
 }
 
 .Button > .buttonContent {
