@@ -33,10 +33,6 @@
   margin: 0;
 }
 
-:global(input) {
-  -webkit-appearance: none;
-}
-
 .transformWrapper {
   background: gray;
   max-width: 100vw;
@@ -78,6 +74,8 @@
 }
 
 .Input > input {
+  -webkit-appearance: none;
+  appearance: none;
   font-size: 1rem;
   border-radius: 3px;
   appearance: none;
@@ -107,6 +105,9 @@
 }
 
 .Button > button {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
   font-size: 1rem;
   position: absolute;
   inset: 0;
@@ -114,17 +115,14 @@
 }
 
 .TextButton {
+  -webkit-appearance: none;
   appearance: none;
-  border: none;
-  padding: var(--padding-1);
   background: var(--stone);
   color: white;
+  border: none;
   padding: var(--padding-1) var(--padding-2);
   border-radius: 3px;
-}
-
-.TextButton > button {
-  font-size: 1em;
+  font-size: 1rem;
 }
 
 .TextButton:disabled {
@@ -293,14 +291,6 @@
   transform: scaleX(-1);
 }
 
-.StartForm .startField input {
-  appearance: none;
-  border: none;
-  border-radius: 3px;
-  box-shadow: 0 0 0 1px var(--gray-1);
-  padding: var(--padding-1);
-}
-
 .FadeDialog .logDialog {
   font-size: 70%;
   text-shadow: 1px 1px 1px white;
@@ -314,7 +304,7 @@
   flex-flow: column nowrap;
 }
 
-.logDialog button {
+.logDialog .Button {
   display: block;
   margin: var(--margin-2) auto;
 }
