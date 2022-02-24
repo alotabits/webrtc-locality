@@ -126,7 +126,7 @@ function Avatar({
       Math.sqrt(Math.pow(m[0] - l[0], 2) + Math.pow(m[1] - l[1], 2)) -
       2 * avatarRadius;
     const i = Math.min(Math.max(1 - d / 400, 0), 1);
-    return Math.pow(i, localGroup ? 2.0 : 4.0);
+    return Math.pow(i, localGroup ? 4.0 : 2.0);
   }, [localGroup, group, muted, location, listenerLocation]);
 
   const gainRef = React.useRef({ value: 0, setValue: () => {} });
@@ -205,7 +205,6 @@ function Avatar({
         <div className={styles.avatarVolume}>
           {name}
           {group ? ` (${group})` : ""}
-          {` ${volume}`}
         </div>
       </div>
     </animated.div>
