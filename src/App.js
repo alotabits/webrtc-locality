@@ -205,7 +205,7 @@ function Avatar({
         <div className={styles.avatarVolume}>
           {name}
           {group ? ` (${group})` : ""}
-          {volume}
+          {` ${volume}`}
         </div>
       </div>
     </animated.div>
@@ -552,6 +552,7 @@ export default function App({ getLogQueue, query, version }) {
         </Region>
         <Region anchor="bottomLeft">
           <Button
+            disabled={!navigator.share}
             onClick={() => {
               navigator
                 .share({
