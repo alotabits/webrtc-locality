@@ -68,7 +68,13 @@ export class PeerJSHandler {
     this.peerState = peerReducerInit;
     this.dataConn = null;
     this.mediaConn = null;
+    this.lastContact = {
+      sentAt: Date.now(),
+      receivedAt: Date.now(),
+    };
   }
+
+  id = () => this.remoteId;
 
   attach = ({ onPeerState }) => {
     this.onPeerState = onPeerState;
@@ -81,6 +87,7 @@ export class PeerJSHandler {
 
   send = (action) => {
     if (this.dataConn?.open) {
+      this.lastContact.sentAt = Date.now();
       this.dataConn.send(action);
     }
   };
@@ -91,12 +98,13 @@ export class PeerJSHandler {
       console.log("PeerJSHandler: peer data connection open event");
 
       dataConn.on("data", (data) => {
+        this.lastContact.receivedAt = Date.now();
+
         if (data.type === "discover") {
           console.log(data);
           onDiscover(data.discover);
           return;
         }
-        console.log("PeerJSHandler: peer data connection data event");
         this.peerState = peerReducer(this.peerState, data);
         this.onPeerState?.(this.peerState);
       });
@@ -114,6 +122,17 @@ export class PeerJSHandler {
       this.onPeerState?.(this.peerState);
     });
   };
+
+  getLastContact = () => this.lastContact;
+
+  close = () => {
+    if (this.mediaConn?.open) {
+      this.mediaConn.close();
+    }
+    if (this.dataConn?.open) {
+      this.dataConn.close();
+    }
+  };
 }
 
 // Handles signaling through PeerJS without peer discovery.
@@ -121,6 +140,8 @@ export class PeerJSManager {
   constructor({ location }) {
     this.localState = { ...peerReducerInit, location };
     this.peerHandlers = new Map();
+    this.heartBeatQueue = [];
+    this.heartBeatTimeout = null;
   }
 
   _getPeer = (id) => {
@@ -130,6 +151,14 @@ export class PeerJSManager {
       this.peerHandlers.set(id, peerHandler);
     }
     return peerHandler;
+  };
+
+  _closePeer = (id) => {
+    this.peerHandlers.delete(id);
+    this.heartBeatQueue = this.heartBeatQueue.filter(
+      (queuePeerHandler) => queuePeerHandler.id() !== id
+    );
+    this.onPeerDisconnect?.(id);
   };
 
   _discover = (peers) => {
@@ -177,15 +206,16 @@ export class PeerJSManager {
         dataConn.send(
           actions.discover(
             Array.from(this.peerHandlers, ([name, value]) => ({
-              id: value.remoteId,
+              id: value.id(),
             }))
           )
         );
+        this.heartBeatQueue.push(peerHandler);
         this.onPeerConnect?.(dataConn.peer, peerHandler);
       });
 
       dataConn.on("close", () => {
-        this.onPeerDisconnect?.(dataConn.peer);
+        this._closePeer(dataConn.peer);
       });
     });
 
@@ -206,7 +236,7 @@ export class PeerJSManager {
     this.peer.on("disconnected", () => {
       console.log("PeerJSManager: peer disconnected.");
       this.peer.reconnect();
-      // Should keep track of..what?
+      // Should keep track of number of reconnect attempts?
     });
 
     this.peer.on("error", (error) => {
@@ -219,12 +249,47 @@ export class PeerJSManager {
         case "socket-closed":
           // TODO: Fatal
           // TODO: Let parent know;
-          console.log("PeerJSManaer: fatal error received", error);
+          console.error("PeerJSManager: fatal error received", error);
           break;
         default:
-          console.log("PeerJSManaer: non-fatal error received", error);
+          console.error("PeerJSManager: non-fatal error received", error);
       }
     });
+
+    this.heartbeat();
+  };
+
+  heartbeat = () => {
+    const delay =
+      this.heartBeatQueue.length > 0 ? 1000 / this.heartBeatQueue.length : 1000;
+    this.heartBeatTimeout = setTimeout(this.heartbeat, delay);
+
+    if (this.heartBeatQueue.length === 0) {
+      return;
+    }
+
+    const peerHandler = this.heartBeatQueue.shift();
+    const lastContact = peerHandler.getLastContact();
+    const now = Date.now();
+
+    if (lastContact.receivedAt < now - 5000) {
+      console.log("heartbeat: closing dormant connection");
+      peerHandler.close();
+      return;
+    }
+
+    const { mediaStream: discard, ...sync } = this.localState;
+    peerHandler.send(actions.sync(sync));
+    this.heartBeatQueue.push(peerHandler);
+  };
+
+  stop = () => {
+    this.peerHandlers.forEach((peerHandler) => peerHandler.close());
+    this.peer.destroy();
+    this.localState = peerReducerInit;
+    this.peerHandlers = new Map();
+    clearTimeout(this.heartBeatTimeout);
+    this.heartBeatQueue = [];
   };
 
   connect = (remoteId) => {
@@ -249,11 +314,12 @@ export class PeerJSManager {
     dataConn.on("open", () => {
       const { mediaStream: discard, ...sync } = this.localState;
       dataConn.send(actions.sync(sync));
+      this.heartBeatQueue.push(peerHandler);
       this.onPeerConnect?.(dataConn.peer, peerHandler);
     });
 
     dataConn.on("close", () => {
-      this.onPeerDisconnect?.(dataConn.peer);
+      this._closePeer(dataConn.peer);
     });
 
     const mediaConn = this.peer.call(remoteId, this.localState.mediaStream);
