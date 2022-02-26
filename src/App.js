@@ -161,7 +161,7 @@ function Avatar({
     };
   }, [audioContext, audioDestination, mediaStream]);
 
-  const z = localGroup && group && localGroup === group ? 1 : 0;
+  const z = localGroup && group && localGroup === group ? 1 : 0.1;
 
   const videoRefFunc = React.useCallback(
     (/** @type HTMLMediaElement */ ref) => {
