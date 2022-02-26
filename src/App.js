@@ -161,6 +161,8 @@ function Avatar({
     };
   }, [audioContext, audioDestination, mediaStream]);
 
+  const z = localGroup && group && localGroup === group ? 1 : 0;
+
   const videoRefFunc = React.useCallback(
     (/** @type HTMLMediaElement */ ref) => {
       videoRef.current = ref;
@@ -175,7 +177,7 @@ function Avatar({
 
   const springStyles = useSpring({
     volume,
-    transform: `translate3d(${location[0]}px, ${location[1]}px, 0) translate3d(-50%, -50%, 0)`,
+    transform: `translate3d(${location[0]}px, ${location[1]}px, ${z}px) translate3d(-50%, -50%, 0)`,
     config: springConfig.stiff,
   });
 
@@ -194,6 +196,7 @@ function Avatar({
         }),
       }}
     >
+      <div className={styles.avatarShadow} />
       <div className={styles.avatarInset}>
         <video
           style={{ transform: mirror ? "scaleX(-1)" : null }}

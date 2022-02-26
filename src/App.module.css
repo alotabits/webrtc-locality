@@ -131,32 +131,49 @@
   opacity: 0.5;
 }
 
+.Avatars {
+  transform-style: preserve-3d;
+}
+
 .Avatar {
-  background: white;
   position: absolute;
 
-  padding: 10px;
-  box-shadow: 0 0 1px 0px lightblue, 0 0 5px var(--gray-1) inset,
-    1px 1px 5px var(--gray-1);
   border-radius: 50%;
-  font-family: sans-serif;
+  width: 170px;
+  height: 170px;
+  transform-style: preserve-3d;
+}
+
+.Avatar .avatarShadow,
+.Avatar .avatarInset {
+  border-radius: 50%;
+  position: absolute;
+  inset: 0;
+}
+
+.Avatar .avatarShadow {
+  z-index: -1;
+  box-shadow: 0 0 100px var(--water-2), 0 0 40px 10px var(--sand-1);
+  transform: translateZ(-1px);
+}
+
+.Avatar .avatarInset {
+  z-index: 1;
+  padding: 10px;
+  /* box-shadow: 0 0 3px rgba(var(--water-2-v), 0.7) inset; */
+  background: var(--sand-1);
 }
 
 .Avatar video {
+  background: var(--sand-1);
   display: block;
-  width: 150px;
-  height: 150px;
   object-fit: cover;
   border-radius: 50%;
   z-index: -1;
   position: relative;
   opacity: 0;
-}
-
-.Avatar .avatarInset {
-  border-radius: 50%;
-  box-shadow: 0 0 10px var(--gray-1) inset;
-  isolation: isolate;
+  width: 100%;
+  height: 100%;
 }
 
 .Avatar.avatarVideo video {
@@ -178,9 +195,6 @@
   box-shadow: 0 0 0 1px var(--gray-1);
   font-size: 80%;
   padding: var(--padding-1);
-}
-
-.Avatars {
 }
 
 .HUD {
@@ -344,4 +358,12 @@
   align-items: center;
   gap: 20px;
   height: 100%;
+}
+
+.Group {
+  position: absolute;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: var(--sand-1);
 }
