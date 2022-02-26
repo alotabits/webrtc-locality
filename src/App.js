@@ -110,12 +110,14 @@ function Avatar({
   const { localGroup, audioContext, audioDestination } =
     React.useContext(AvatarContext);
 
+  const isSameGroup = localGroup && group && localGroup === group;
+
   const volume = React.useMemo(() => {
     if (muted) {
       return 0;
     }
 
-    if (localGroup && group && localGroup === group) {
+    if (isSameGroup) {
       return 1;
     }
 
@@ -127,7 +129,7 @@ function Avatar({
       2 * avatarRadius;
     const i = Math.min(Math.max(1 - d / 400, 0), 1);
     return Math.pow(i, localGroup ? 4.0 : 2.0);
-  }, [localGroup, group, muted, location, listenerLocation]);
+  }, [muted, isSameGroup, location, listenerLocation, localGroup]);
 
   const gainRef = React.useRef({ value: 0, setValue: () => {} });
 
@@ -161,7 +163,7 @@ function Avatar({
     };
   }, [audioContext, audioDestination, mediaStream]);
 
-  const z = localGroup && group && localGroup === group ? 1 : 0.1;
+  const z = isSameGroup ? 1 : 1;
 
   const videoRefFunc = React.useCallback(
     (/** @type HTMLMediaElement */ ref) => {
