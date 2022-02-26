@@ -613,7 +613,9 @@ export default function App({ getLogQueue, query, version }) {
         <GroupForm
           onGroup={(groupName) => {
             setGroupOpen(false);
-            setAvatarState(peerManager.dispatch(actions.setGroup(groupName)));
+            setAvatarState(
+              peerManager.dispatch(actions.setGroup(groupName || null))
+            );
           }}
         />
       </FadeDialog>
