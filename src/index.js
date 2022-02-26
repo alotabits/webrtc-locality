@@ -9,7 +9,7 @@ const rootElement = document.getElementById("root");
 
 ReactDOM.render(
   <StrictMode>
-    <App getLogQueue={getLogQueue} query={query} version="6" />
+    <App getLogQueue={getLogQueue} query={query} version="7" />
   </StrictMode>,
   rootElement
 );
