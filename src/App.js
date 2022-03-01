@@ -253,7 +253,7 @@ const Region = ({ anchor, children }) => {
 const StartForm = ({ join, version, onStart }) => {
   const [name, setName] = React.useState("");
   const { mediaStream, error: mediaError } = useMediaStream({
-    video: true,
+    video: { width: 300, height: 300 },
     audio: true,
   });
   const videoRef = React.useRef();
