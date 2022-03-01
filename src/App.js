@@ -256,6 +256,7 @@ const StartForm = ({ join, version, onStart }) => {
     video: { width: 300, height: 300 },
     audio: true,
   });
+
   const videoRef = React.useRef();
   useEffect(() => {
     videoRef.current.srcObject = mediaStream;
