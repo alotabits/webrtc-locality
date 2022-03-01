@@ -262,12 +262,28 @@ const StartForm = ({ join, version, onStart }) => {
     videoRef.current.srcObject = mediaStream;
   }, [mediaStream]);
 
+  const [starting, setStarting] = React.useState(false);
+  const [startError, setStartError] = React.useState(null);
+
+  const handleStart = async (name, mediaStream) => {
+    setStarting(true);
+    setStartError(null);
+
+    try {
+      await onStart(name, mediaStream);
+      setStarting(false);
+    } catch (error) {
+      setStarting(false);
+      setStartError(error);
+    }
+  };
+
   return (
     <form
       className={styles.StartForm}
       onSubmit={(e) => {
         e.preventDefault();
-        onStart(name, mediaStream);
+        handleStart(name, mediaStream);
       }}
     >
       <Text className={styles.title}>
@@ -277,8 +293,12 @@ const StartForm = ({ join, version, onStart }) => {
       <div className={styles.video}>
         <video ref={videoRef} muted autoPlay playsInline />
       </div>
+      <div className={styles.startError}>
+        {startError ? `${startError}` : null}
+      </div>
       <div className={styles.startField}>
         <Input
+          className={styles.nameInput}
           placeholder="Name"
           type="text"
           value={name}
@@ -300,7 +320,7 @@ const StartForm = ({ join, version, onStart }) => {
         />
       </div>
       <div>
-        <TextButton disabled={!!mediaError || !mediaStream}>
+        <TextButton disabled={!!mediaError || !mediaStream || starting}>
           {join ? "Join" : "Create"}
         </TextButton>
       </div>
@@ -442,8 +462,10 @@ export default function App({ getLogQueue, query, version }) {
     peerManager.getLocalState()
   );
 
+  const [started, setStarted] = React.useState(false);
+
   const handleStart = React.useCallback(
-    (startName, startMediaStream, joinId) => {
+    async (startName, startMediaStream, joinId) => {
       avatarAudio.audioPlay();
       setAvatarState(peerManager.dispatch(actions.setName(startName)));
       setAvatarState(
@@ -464,15 +486,16 @@ export default function App({ getLogQueue, query, version }) {
         });
       };
 
-      peerManager.start({
-        onOpen: (id) => {
-          if (joinId) {
-            peerManager.connect(joinId);
-          }
-        },
+      await peerManager.start({
         onPeerConnect: handlePeerConnect,
         onPeerDisconnect: handlePeerDisconnect,
       });
+
+      if (joinId) {
+        await peerManager.connect(joinId, true);
+      }
+
+      setStarted(true);
     },
     [peerManager, avatarAudio, updateAvatars]
   );
@@ -595,7 +618,7 @@ export default function App({ getLogQueue, query, version }) {
         <TextButton onClick={() => setLogOpen(false)}>Close</TextButton>
       </FadeDialog>
 
-      <FadeDialog isOpen={!avatarState.mediaStream}>
+      <FadeDialog isOpen={!started}>
         <StartForm
           join={!!query.get("join")}
           version={version}

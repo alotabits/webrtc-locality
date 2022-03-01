@@ -181,82 +181,125 @@ export class PeerJSManager {
     return this.localState;
   };
 
-  start = ({ onOpen, onPeerConnect, onPeerDisconnect, onFatal }) => {
-    this.onOpen = onOpen;
-    this.onPeerConnect = onPeerConnect;
-    this.onPeerDisconnect = onPeerDisconnect;
-    this.onFatal = onFatal;
+  start = async ({ onPeerConnect, onPeerDisconnect, onFatal }) => {
+    return new Promise((resolve, reject) => {
+      this.onPeerConnect = onPeerConnect;
+      this.onPeerDisconnect = onPeerDisconnect;
+      this.onFatal = onFatal;
 
-    this.peer = new Peer();
+      this.peer = new Peer();
 
-    this.peer.on("open", (id) => {
-      this.id = id;
-      this.onOpen?.(id);
-    });
+      let resolved = false;
+      let rejected = false;
 
-    this.peer.on("connection", (dataConn) => {
-      console.log("PeerJSManager: received peer data connection");
+      this.peer.on("open", (id) => {
+        if (!resolved && !rejected) {
+          console.log("PeerJSManager: start open");
+          resolved = true;
+          resolve();
+        }
 
-      const peerHandler = this._getPeer(dataConn.peer);
-      peerHandler.setDataConnection(dataConn, this._discover);
-
-      dataConn.on("open", () => {
-        const { mediaStream: discard, ...sync } = this.localState;
-        dataConn.send(actions.sync(sync));
-        dataConn.send(
-          actions.discover(
-            Array.from(this.peerHandlers, ([name, value]) => ({
-              id: value.id(),
-            }))
-          )
-        );
-        this.heartBeatQueue.push(peerHandler);
-        this.onPeerConnect?.(dataConn.peer, peerHandler);
+        this.id = id;
       });
 
-      dataConn.on("close", () => {
-        this._closePeer(dataConn.peer);
+      this.peer.on("error", (error) => {
+        if (!resolved && !rejected) {
+          console.error("PeerJSManager: connect error: ", error);
+          rejected = true;
+          reject(error);
+        }
+
+        switch (error.type) {
+          case "browser-incompatible":
+          case "invalid-id":
+          case "invalid-key":
+          case "ssl-unavailable":
+          case "server-error":
+          case "socket-error":
+          case "socket-closed":
+            // Fatal errors
+            // TODO: Let parent know;
+            console.error("PeerJSManager: fatal error received", error);
+            break;
+          case "disconnected":
+          case "network":
+          case "peer-unavailable":
+          case "webrtc":
+            // Non-fatal errors
+            console.error("PeerJSManager: non-fatal error received", error);
+            break;
+          case "unavailable-id":
+            // Sometimes fatal
+            console.error("PeerJSManager: id is unavailable", error);
+            break;
+          default:
+            console.error("PeerJSManager: unknown error received", error);
+        }
       });
+
+      this.peer.on("connection", (dataConn) => {
+        console.log("PeerJSManager: received peer data connection");
+
+        const peerHandler = this._getPeer(dataConn.peer);
+        peerHandler.setDataConnection(dataConn, this._discover);
+
+        dataConn.on("open", () => {
+          const { mediaStream: discard, ...sync } = this.localState;
+          dataConn.send(actions.sync(sync));
+          dataConn.send(
+            actions.discover(
+              Array.from(this.peerHandlers, ([name, value]) => ({
+                id: value.id(),
+              }))
+            )
+          );
+          this.heartBeatQueue.push(peerHandler);
+          this.onPeerConnect?.(dataConn.peer, peerHandler);
+        });
+
+        dataConn.on("close", () => {
+          this._closePeer(dataConn.peer);
+        });
+
+        dataConn.on("error", (error) => {
+          console.log("PeerJSManager: data connection error event.", error);
+        });
+      });
+
+      this.peer.on("call", (mediaConn) => {
+        console.log("PeerJSManager: received peer media connection.");
+
+        mediaConn.answer(this.localState.mediaStream);
+        const peerHandler = this._getPeer(mediaConn.peer);
+        peerHandler.setMediaConnection(mediaConn);
+
+        mediaConn.on("stream", () => {
+          console.log("PeerJSManager: media connection stream event.");
+        });
+
+        mediaConn.on("close", () => {
+          console.log("PeerJSManager: media connection close event.");
+        });
+
+        mediaConn.on("error", (error) => {
+          console.log("PeerJSManager: media connection error event.", error);
+        });
+      });
+
+      this.peer.on("disconnected", () => {
+        console.log("PeerJSManager: peer disconnected.");
+        this.peer.reconnect();
+        // Should keep track of number of reconnect attempts?
+      });
+
+      this.peer.on("close", () => {
+        console.log("PeerJSManager: peer connection closed.");
+        this.peer.destroy();
+        this.onFatal?.();
+      });
+
+      this.heartbeat();
     });
-
-    this.peer.on("call", (mediaConn) => {
-      console.log("PeerJSManager: received peer media connection");
-
-      mediaConn.answer(this.localState.mediaStream);
-      const peerHandler = this._getPeer(mediaConn.peer);
-      peerHandler.setMediaConnection(mediaConn);
-    });
-
-    this.peer.on("close", () => {
-      console.log("PeerJSManager: peer connection closed.");
-      this.peer.destroy();
-      this.onFatal?.();
-    });
-
-    this.peer.on("disconnected", () => {
-      console.log("PeerJSManager: peer disconnected.");
-      this.peer.reconnect();
-      // Should keep track of number of reconnect attempts?
-    });
-
-    this.peer.on("error", (error) => {
-      switch (error.type) {
-        case "browser-incompatible":
-        case "invalid-id":
-        case "invalid-key":
-        case "ssl-unavailable":
-        case "server-error":
-        case "socket-closed":
-          // TODO: Fatal
-          // TODO: Let parent know;
-          console.error("PeerJSManager: fatal error received", error);
-          break;
-        default:
-          console.error("PeerJSManager: non-fatal error received", error);
-      }
-    });
-
-    this.heartbeat();
   };
 
   heartbeat = () => {
@@ -292,39 +335,83 @@ export class PeerJSManager {
     this.heartBeatQueue = [];
   };
 
-  connect = (remoteId) => {
-    if (remoteId === this.id) {
-      console.log(`PeerJSManager: skipping connect to self at ${remoteId}`);
-      return;
-    }
+  connect = async (remoteId, initial) => {
+    return new Promise((resolve, reject) => {
+      if (remoteId === this.id) {
+        console.log(`PeerJSManager: skipping connect to self at ${remoteId}`);
+        resolve();
+        return;
+      }
 
-    if (this.peerHandlers.has(remoteId)) {
-      console.log(`PeerJSManager: already connected to ${remoteId}`);
-      return;
-    }
+      if (this.peerHandlers.has(remoteId)) {
+        console.log(`PeerJSManager: already connected to ${remoteId}`);
+        resolve();
+        return;
+      }
 
-    console.log(`PeerJSManager: connecting to ${remoteId}`);
-    const peerHandler = this._getPeer(remoteId);
+      console.log(`PeerJSManager: connecting to ${remoteId}`);
+      const peerHandler = this._getPeer(remoteId);
 
-    const dataConn = this.peer.connect(remoteId, {
-      reliable: true,
-      serialization: "json",
+      this.peer.on("error", (error) => {
+        if (initial && !resolved && !rejected) {
+          console.error("PeerJSManager: connect error initial: ", error);
+          rejected = true;
+          reject(error);
+          this._closePeer(remoteId);
+        }
+      });
+
+      const dataConn = this.peer.connect(remoteId, {
+        reliable: true,
+        serialization: "json",
+      });
+
+      let resolved = false;
+      let rejected = false;
+
+      dataConn.on("open", () => {
+        console.log("PeerJSManager: connect open");
+        if (!resolved && !rejected) {
+          resolved = true;
+          resolve();
+        } else {
+          return;
+        }
+
+        const { mediaStream: discard, ...sync } = this.localState;
+        dataConn.send(actions.sync(sync));
+        this.heartBeatQueue.push(peerHandler);
+        this.onPeerConnect?.(dataConn.peer, peerHandler);
+
+        // TODO: move mediaConn inside dataConn?
+      });
+
+      dataConn.on("close", () => {
+        this._closePeer(dataConn.peer);
+      });
+
+      dataConn.on("error", (error) => {
+        console.error("PeerJSManager: connect error: ", error);
+        if (!resolved && !rejected) {
+          rejected = true;
+          reject(error);
+        }
+
+        // TODO: handler errors
+      });
+
+      const mediaConn = this.peer.call(remoteId, this.localState.mediaStream);
+
+      mediaConn.on("close", () => {
+        console.log("PeerJSManager: media connection closed.");
+      });
+
+      mediaConn.on("error", (error) => {
+        console.log("PeerJSManager: media connection error: ", error);
+      });
+
+      peerHandler.setDataConnection(dataConn, this._discover);
+      peerHandler.setMediaConnection(mediaConn);
     });
-
-    dataConn.on("open", () => {
-      const { mediaStream: discard, ...sync } = this.localState;
-      dataConn.send(actions.sync(sync));
-      this.heartBeatQueue.push(peerHandler);
-      this.onPeerConnect?.(dataConn.peer, peerHandler);
-    });
-
-    dataConn.on("close", () => {
-      this._closePeer(dataConn.peer);
-    });
-
-    const mediaConn = this.peer.call(remoteId, this.localState.mediaStream);
-
-    peerHandler.setDataConnection(dataConn, this._discover);
-    peerHandler.setMediaConnection(mediaConn);
   };
 }
