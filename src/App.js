@@ -561,13 +561,67 @@ export default function App({ getLogQueue, query, version }) {
               />
             )}
 
-            {Object.values(avatars).map((avatar) => (
-              <PeerAvatar
-                key={avatar.id}
-                peerHandler={avatar.peerHandler}
-                listenerLocation={avatarState.location}
-              />
-            ))}
+            {(() => {
+              const groups = {};
+
+              if (avatarState.group) {
+                groups[avatarState.group] = {
+                  location: avatarState.location,
+                  count: 1,
+                };
+              }
+
+              const renderedAvatars = Object.values(avatars).map((avatar) => {
+                const { peerState } = avatar.peerHandler;
+                const { group } = peerState;
+
+                if (group) {
+                  const location = groups[group]?.location ?? [0, 0];
+                  const count = groups[group]?.count ?? 0;
+                  groups[group] = {
+                    location: [
+                      location[0] + peerState.location[0],
+                      location[1] + peerState.location[1],
+                    ],
+                    count: count + 1,
+                  };
+                }
+
+                return (
+                  <PeerAvatar
+                    key={avatar.id}
+                    peerHandler={avatar.peerHandler}
+                    listenerLocation={avatarState.location}
+                  />
+                );
+              });
+
+              return (
+                <>
+                  {renderedAvatars}
+                  {Object.entries(groups).map(
+                    ([group, { location, count }]) => {
+                      return (
+                        <div
+                          key={group}
+                          className={styles.Group}
+                          style={{
+                            transform: `
+                            translate3d(
+                              ${location[0] / count}px,
+                              ${location[1] / count}px,
+                              0
+                            )
+                            translate(-50%, -50%)
+                            `,
+                          }}
+                        />
+                      );
+                    }
+                  )}
+                </>
+              );
+            })()}
           </Avatars>
         </TransformComponent>
       </TransformWrapper>
