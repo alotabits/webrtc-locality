@@ -31,8 +31,6 @@
 
 :global(body) {
   margin: 0;
-  overflow: hidden;
-  position: fixed;
 }
 
 .transformWrapper {
@@ -52,6 +50,24 @@
 .locator {
   position: absolute;
   inset: 0;
+}
+
+.title {
+  font-size: 1.1em;
+  position: relative;
+  margin-bottom: 1ex;
+  text-transform: uppercase;
+  font-size: 0.9em;
+}
+
+.title:first-letter {
+  font-size: 1.1em;
+}
+
+.title sup {
+  font-size: 0.6em;
+  position: absolute;
+  transform: translate(0.25ex, -0.25ex);
 }
 
 .Input {
@@ -122,6 +138,7 @@
 .Avatar {
   position: absolute;
 
+  /* box-shadow: 0 0 1px 0px lightblue, 0 0 5px var(--gray-1) inset, 1px 1px 5px var(--gray-1); */
   border-radius: 50%;
   width: 170px;
   height: 170px;
@@ -130,6 +147,8 @@
 
 .Avatar .avatarShadow,
 .Avatar .avatarInset {
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
   position: absolute;
   inset: 0;
@@ -144,7 +163,7 @@
 .Avatar .avatarInset {
   z-index: 1;
   padding: 10px;
-  /* box-shadow: 0 0 3px rgba(var(--water-2-v), 0.7) inset; */
+  box-shadow: 0 0 3px rgba(var(--water-2-v), 0.7) inset;
   background: var(--sand-1);
 }
 
@@ -270,27 +289,14 @@
   align-items: center;
   gap: 10px;
   height: 100%;
-}
 
-.StartForm .title {
   font-size: 1.2em;
-  position: relative;
-  text-transform: uppercase;
-}
-
-.StartForm .title:first-letter {
-  font-size: 1.1em;
-}
-
-.StartForm .title sup {
-  font-size: 0.6em;
-  position: absolute;
-  transform: translate(0.25ex, -0.25ex);
 }
 
 .StartForm .video {
   border-radius: 50%;
   margin: var(--margin-2);
+  margin-bottom: 20px;
 }
 
 .StartForm .video > video {
@@ -301,18 +307,6 @@
   display: block;
   background: white;
   transform: scaleX(-1);
-}
-
-.StartForm .startError {
-  font-size: 0.8em;
-  max-width: 80%;
-  text-align: center;
-  height: 2.1em;
-  overflow: hidden;
-}
-
-.StartForm .nameInput input {
-  text-align: center;
 }
 
 .FadeDialog .logDialog {

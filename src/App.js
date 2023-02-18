@@ -110,14 +110,12 @@ function Avatar({
   const { localGroup, audioContext, audioDestination } =
     React.useContext(AvatarContext);
 
-  const isSameGroup = localGroup && group && localGroup === group;
-
   const volume = React.useMemo(() => {
     if (muted) {
       return 0;
     }
 
-    if (isSameGroup) {
+    if (localGroup && group && localGroup === group) {
       return 1;
     }
 
@@ -129,7 +127,7 @@ function Avatar({
       2 * avatarRadius;
     const i = Math.min(Math.max(1 - d / 400, 0), 1);
     return Math.pow(i, localGroup ? 4.0 : 2.0);
-  }, [muted, isSameGroup, location, listenerLocation, localGroup]);
+  }, [localGroup, group, muted, location, listenerLocation]);
 
   const gainRef = React.useRef({ value: 0, setValue: () => {} });
 
@@ -163,7 +161,7 @@ function Avatar({
     };
   }, [audioContext, audioDestination, mediaStream]);
 
-  const z = isSameGroup ? 2 : 1;
+  const z = localGroup && group && localGroup === group ? 1 : 0;
 
   const videoRefFunc = React.useCallback(
     (/** @type HTMLMediaElement */ ref) => {
@@ -253,37 +251,20 @@ const Region = ({ anchor, children }) => {
 const StartForm = ({ join, version, onStart }) => {
   const [name, setName] = React.useState("");
   const { mediaStream, error: mediaError } = useMediaStream({
-    video: { width: 300, height: 300 },
+    video: true,
     audio: true,
   });
-
   const videoRef = React.useRef();
   useEffect(() => {
     videoRef.current.srcObject = mediaStream;
   }, [mediaStream]);
-
-  const [starting, setStarting] = React.useState(false);
-  const [startError, setStartError] = React.useState(null);
-
-  const handleStart = async (name, mediaStream) => {
-    setStarting(true);
-    setStartError(null);
-
-    try {
-      await onStart(name, mediaStream);
-      setStarting(false);
-    } catch (error) {
-      setStarting(false);
-      setStartError(error);
-    }
-  };
 
   return (
     <form
       className={styles.StartForm}
       onSubmit={(e) => {
         e.preventDefault();
-        handleStart(name, mediaStream);
+        onStart(name, mediaStream);
       }}
     >
       <Text className={styles.title}>
@@ -293,12 +274,8 @@ const StartForm = ({ join, version, onStart }) => {
       <div className={styles.video}>
         <video ref={videoRef} muted autoPlay playsInline />
       </div>
-      <div className={styles.startError}>
-        {startError ? `${startError}` : null}
-      </div>
       <div className={styles.startField}>
         <Input
-          className={styles.nameInput}
           placeholder="Name"
           type="text"
           value={name}
@@ -320,7 +297,7 @@ const StartForm = ({ join, version, onStart }) => {
         />
       </div>
       <div>
-        <TextButton disabled={!!mediaError || !mediaStream || starting}>
+        <TextButton disabled={!!mediaError || !mediaStream}>
           {join ? "Join" : "Create"}
         </TextButton>
       </div>
@@ -462,10 +439,8 @@ export default function App({ getLogQueue, query, version }) {
     peerManager.getLocalState()
   );
 
-  const [started, setStarted] = React.useState(false);
-
   const handleStart = React.useCallback(
-    async (startName, startMediaStream, joinId) => {
+    (startName, startMediaStream, joinId) => {
       avatarAudio.audioPlay();
       setAvatarState(peerManager.dispatch(actions.setName(startName)));
       setAvatarState(
@@ -486,16 +461,15 @@ export default function App({ getLogQueue, query, version }) {
         });
       };
 
-      await peerManager.start({
+      peerManager.start({
+        onOpen: (id) => {
+          if (joinId) {
+            peerManager.connect(joinId);
+          }
+        },
         onPeerConnect: handlePeerConnect,
         onPeerDisconnect: handlePeerDisconnect,
       });
-
-      if (joinId) {
-        await peerManager.connect(joinId, true);
-      }
-
-      setStarted(true);
     },
     [peerManager, avatarAudio, updateAvatars]
   );
@@ -618,7 +592,7 @@ export default function App({ getLogQueue, query, version }) {
         <TextButton onClick={() => setLogOpen(false)}>Close</TextButton>
       </FadeDialog>
 
-      <FadeDialog isOpen={!started}>
+      <FadeDialog isOpen={!avatarState.mediaStream}>
         <StartForm
           join={!!query.get("join")}
           version={version}
@@ -639,9 +613,7 @@ export default function App({ getLogQueue, query, version }) {
         <GroupForm
           onGroup={(groupName) => {
             setGroupOpen(false);
-            setAvatarState(
-              peerManager.dispatch(actions.setGroup(groupName || null))
-            );
+            setAvatarState(peerManager.dispatch(actions.setGroup(groupName)));
           }}
         />
       </FadeDialog>
